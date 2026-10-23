@@ -1,0 +1,310 @@
+# CloudCart version matrix (machine-readable; read by later preflight checks).
+#
+# Every entry records the exact version, ARM64 availability and how it was
+# verified, an official source, a compatibility note, the check date, and a
+# status:
+#   verified    - confirmed from a primary source (release notes, registry
+#                 manifest, package index) on the check date.
+#   unverified  - not confirmed from a primary source; do not rely on it
+#                 until a later task checks it.
+# "Selected" is not "proven on the cluster": installing and exercising these
+# components on the M4 kind cluster happens in later milestones.
+#
+# Image digests are the multi-architecture index digests observed on the check
+# date. Tags such as postgres:18.6-trixie are rebuilt upstream, so pin the
+# digest wherever byte-for-byte reproducibility matters.
+
+schema_version: 1
+checked: "2026-10-23"
+timezone: Asia/Thimphu
+
+host_observed:
+  machine: Apple M4, arm64, 24 GiB RAM, macOS 26.6.2
+  docker_vm: Docker Desktop 29.5.3, 7.75 GiB memory (8321232896 bytes), 12 CPUs, cgroup v2
+  note: Below the design's 12-14 GiB planning estimate; see docs/instructor/prerequisites.md.
+
+python:
+  runtime:
+    version: "3.15"
+    patch: "3.15.1"
+    image: python:3.15.1-slim-trixie
+    image_index_digest: sha256:08275f764e022331c6d3e3ca55d8cce01fa4684b02111adf0445d71806fe7941
+    arm64:
+      available: true
+      verified_by: Registry manifest index for python:3.15.1-slim-trixie lists linux/arm64/v8 (python:3.15-slim also exists).
+    source: https://www.python.org/downloads/release/python-3151/
+    reason: >-
+      Newest CPython minor (3.15.0 released 2026-10-09; 3.15.1 on 2026-10-21; 3.16 unreleased).
+      Every locked backend dependency is pure Python or publishes cp315 macOS arm64 and
+      manylinux aarch64 wheels (see backend_libraries), and the official slim image exists.
+    compatibility: >-
+      pyproject.toml pins requires-python ">=3.15,<3.16". uv 0.12.17 (observed) can only
+      provision CPython 3.15.0rc2; uv 0.13.5 (2026-10-22) adds managed CPython 3.15.1.
+      Celery/Kombu do not yet declare Python 3.15 support (see planned_python_libraries).
+    fallback: CPython 3.14.9, image python:3.14.9-slim-trixie (index sha256:b347e2dcbc7f0b6f9fb7182e9da6a187fb10ae715e0692518c1aed0eec94a700, linux/arm64/v8 listed).
+    checked: "2026-10-23"
+    status: verified
+
+# Locked in services/backend/uv.lock. ARM64 evidence for compiled packages: cp315
+# wheel files listed in uv.lock and on PyPI; the rest ship py3-none-any wheels.
+backend_libraries:
+  fastapi:
+    version: "0.161.1"
+    arm64: {available: true, verified_by: "Pure-Python wheel fastapi-0.161.1-py3-none-any.whl in uv.lock"}
+    source: https://pypi.org/project/fastapi/0.161.1/
+    compatibility: Resolved with starlette 1.9.0 and pydantic 2.14.1.
+    checked: "2026-10-23"
+    status: verified
+  starlette:
+    version: "1.9.0"
+    arm64: {available: true, verified_by: "Pure-Python wheel in uv.lock (FastAPI dependency)"}
+    source: https://pypi.org/project/starlette/1.9.0/
+    compatibility: Transitive FastAPI dependency.
+    checked: "2026-10-23"
+    status: verified
+  uvicorn:
+    version: "0.54.0"
+    arm64: {available: true, verified_by: "Pure-Python wheel in uv.lock; installed without the [standard] extras"}
+    source: https://pypi.org/project/uvicorn/0.54.0/
+    compatibility: One Uvicorn process per API Pod (plan); launch command is added in Task 6.
+    checked: "2026-10-23"
+    status: verified
+  pydantic:
+    version: "2.14.1"
+    arm64: {available: true, verified_by: "Pure-Python wheel in uv.lock"}
+    source: https://pypi.org/project/pydantic/2.14.1/
+    compatibility: Requires pydantic-core 2.50.1.
+    checked: "2026-10-23"
+    status: verified
+  pydantic_core:
+    version: "2.50.1"
+    arm64: {available: true, verified_by: "uv.lock/PyPI list pydantic_core-2.50.1-cp315-cp315-macosx_11_0_arm64.whl and -cp315-cp315-manylinux_2_17_aarch64.manylinux2014_aarch64.whl"}
+    source: https://pypi.org/project/pydantic-core/2.50.1/
+    compatibility: Compiled extension; cp315 wheels published 2026-10-11.
+    checked: "2026-10-23"
+    status: verified
+  pydantic_settings:
+    version: "2.16.1"
+    arm64: {available: true, verified_by: "Pure-Python wheel in uv.lock"}
+    source: https://pypi.org/project/pydantic-settings/2.16.1/
+    compatibility: Reads CLOUDCART_* environment variables; no .env file is configured.
+    checked: "2026-10-23"
+    status: verified
+  sqlalchemy:
+    version: "2.1.6"
+    arm64: {available: true, verified_by: "uv.lock/PyPI list sqlalchemy-2.1.6-cp315-cp315-macosx_11_0_arm64.whl and -cp315-cp315-manylinux2014_aarch64...manylinux_2_28_aarch64.whl, plus a py3-none-any wheel"}
+    source: https://pypi.org/project/SQLAlchemy/2.1.6/
+    compatibility: Synchronous engine with the psycopg 3 dialect (postgresql+psycopg); greenlet is not required for synchronous use in 2.1.
+    checked: "2026-10-23"
+    status: verified
+  alembic:
+    version: "1.20.1"
+    arm64: {available: true, verified_by: "Pure-Python wheel in uv.lock (Mako 1.4.3 pure; MarkupSafe 3.0.4 has cp315 arm64 wheels)"}
+    source: https://pypi.org/project/alembic/1.20.1/
+    compatibility: Supports SQLAlchemy 2.1; migrations run online through services/backend/alembic/env.py.
+    checked: "2026-10-23"
+    status: verified
+  psycopg:
+    version: "3.3.6"
+    extras: [binary]
+    arm64: {available: true, verified_by: "uv.lock/PyPI list psycopg_binary-3.3.6-cp315-cp315-macosx_11_0_arm64.whl and -cp315-cp315-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl"}
+    source: https://pypi.org/project/psycopg/3.3.6/
+    compatibility: psycopg-binary bundles libpq, so the slim image needs no system libpq; manylinux_2_28 matches Debian trixie glibc.
+    checked: "2026-10-23"
+    status: verified
+  pytest:
+    version: "9.1.1"
+    group: dev
+    arm64: {available: true, verified_by: "Pure-Python wheel in uv.lock"}
+    source: https://pypi.org/project/pytest/9.1.1/
+    compatibility: Test-only dependency.
+    checked: "2026-10-23"
+    status: verified
+  httpx2:
+    version: "2.16.0"
+    group: dev
+    arm64: {available: true, verified_by: "Pure-Python wheels for httpx2, httpcore2 2.16.0 and truststore 0.10.5 in uv.lock"}
+    source: https://pypi.org/project/httpx2/2.16.0/
+    compatibility: >-
+      Client behind FastAPI's TestClient. Starlette 1.9.0 requires httpx2 for its test client
+      and emits a deprecation warning when it falls back to httpx.
+    checked: "2026-10-23"
+    status: verified
+
+# Not locked yet: recorded for the tasks that add them.
+planned_python_libraries:
+  celery:
+    version: "5.6.3"
+    arm64: {available: true, verified_by: "PyPI lists only celery-5.6.3-py3-none-any.whl and an sdist (pure Python)"}
+    source: https://pypi.org/project/celery/5.6.3/
+    compatibility: >-
+      Latest stable (2026-03-26); 5.7.0rc1 (2026-10-18) is a pre-release. 5.6.3 classifiers stop
+      at Python 3.13 and 5.7.0rc1 at 3.14; neither declares 3.15. Task 4 must prove the worker on
+      Python 3.15 or revisit the Python pin.
+    checked: "2026-10-23"
+    status: unverified
+  kombu:
+    version: "5.6.2"
+    arm64: {available: true, verified_by: "PyPI lists only kombu-5.6.2-py3-none-any.whl and an sdist (pure Python)"}
+    source: https://pypi.org/project/kombu/5.6.2/
+    compatibility: Latest stable (2025-12-29), paired with Celery 5.6.x; classifiers stop at Python 3.13. billiard 4.3.1 (pure Python) declares up to 3.14.
+    checked: "2026-10-23"
+    status: unverified
+
+data_services:
+  postgresql:
+    version: "18.6"
+    image: postgres:18.6-trixie
+    image_index_digest: sha256:edb0c08dc33befd0262ab3b5cf1c4f3f8cfd8b09e88c05b45adee29d6761ddb6
+    arm64:
+      available: true
+      verified_by: Registry manifest index lists linux/arm64/v8; image pulled and run as a healthy container via tests/compose.yaml on the M4 (2026-10-23).
+    source: https://hub.docker.com/_/postgres
+    compatibility: >-
+      Latest stable release; PostgreSQL 19 is still at 19rc1. postgres_exporter v0.20.1 CI-tests
+      PostgreSQL 13-18. Debian trixie variant chosen over Alpine for glibc locale behaviour.
+    checked: "2026-10-23"
+    status: verified
+  rabbitmq:
+    version: "4.3.7"
+    image: rabbitmq:4.3.7-management
+    image_index_digest: sha256:79fb281ef7e0a15e3c5e0e12e66e944cebbf14a129493ef464369abd2c48d01a
+    arm64:
+      available: true
+      verified_by: Registry manifest index lists linux/arm64/v8; image pulled and run as a healthy container via tests/compose.yaml on the M4 (2026-10-23).
+    source: https://www.rabbitmq.com/release-information
+    compatibility: >-
+      The -management tag includes the management plugin (UI/API on 15672 in the container).
+      4.3 receives community support until 2027-01-31. 4.4.0 (released 2026-10-20) was not
+      selected because it was three days old; it is the upgrade candidate.
+    checked: "2026-10-23"
+    status: verified
+
+kubernetes_platform:
+  kind:
+    version: v0.32.0
+    arm64: {available: true, verified_by: "Installed binary reports kind v0.32.0 go1.26.3 darwin/arm64"}
+    source: https://github.com/kubernetes-sigs/kind/releases/tag/v0.32.0
+    compatibility: >-
+      Matches the installed kind. v0.33.0 (2026-08-26, default Kubernetes 1.37.0) exists; kind
+      release notes warn node images are not guaranteed compatible across kind releases.
+    checked: "2026-10-23"
+    status: verified
+  kind_node_image:
+    image: kindest/node:v1.36.1@sha256:3489c7674813ba5d8b1a9977baea8a6e553784dab7b84759d1014dbd78f7ebd5
+    arm64: {available: true, verified_by: "kind v0.32.0 release notes; registry manifest list shows linux/amd64 and linux/arm64"}
+    source: https://github.com/kubernetes-sigs/kind/releases/tag/v0.32.0
+    compatibility: Default node image of kind v0.32.0; must be referenced by digest.
+    checked: "2026-10-23"
+    status: verified
+  kubernetes:
+    version: v1.36.1
+    arm64: {available: true, verified_by: "Provided by the kind_node_image above"}
+    source: https://github.com/kubernetes/kubernetes/releases/tag/v1.36.1
+    compatibility: >-
+      Newest Kubernetes with a kind v0.32.0 prebuilt image. Newer 1.36 patches exist (v1.36.5,
+      2026-09-23) but have no v0.32.0 node image; using them means upgrading kind.
+    checked: "2026-10-23"
+    status: verified
+  kubectl:
+    version: v1.36.x
+    arm64: {available: true, verified_by: "Installed client reports v1.36.4 on darwin/arm64"}
+    source: https://kubernetes.io/releases/version-skew-policy/
+    compatibility: Supported client skew is one minor version either side of the v1.36 API server.
+    checked: "2026-10-23"
+    status: verified
+  helm:
+    version: v4.3.1
+    arm64: {available: true, verified_by: "v4.3.1 release notes list darwin-arm64 and linux-arm64 archives with SHA-256 checksums"}
+    source: https://github.com/helm/helm/releases/tag/v4.3.1
+    compatibility: Helm 4.3.x supports Kubernetes 1.34-1.37 (helm.sh version skew page). Observed installed v4.3.0 is in the same supported line.
+    checked: "2026-10-23"
+    status: verified
+  calico:
+    version: v3.33.0
+    images:
+      operator: quay.io/tigera/operator:v1.44.0
+      node: quay.io/calico/node:v3.33.0
+    arm64: {available: true, verified_by: "Registry manifest lists for quay.io/calico/node:v3.33.0, quay.io/calico/calico:v3.33.0 and quay.io/tigera/operator:v1.44.0 include linux/arm64; docs list arm64 processors"}
+    source: https://docs.tigera.io/calico/latest/getting-started/kubernetes/requirements
+    compatibility: >-
+      Tested against Kubernetes 1.35, 1.36 and 1.37 (Calico 3.33 requirements page). Operator
+      version taken from manifests/tigera-operator.yaml at tag v3.33.0. The kind-specific
+      install (default CNI disabled) is verified in Task 7.
+    checked: "2026-10-23"
+    status: verified
+  gateway_api:
+    version: v1.6.3
+    channel: standard
+    manifest: https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.6.3/standard-install.yaml
+    arm64: {available: true, verified_by: "CRDs only (YAML); no images or architecture dependency"}
+    source: https://github.com/kubernetes-sigs/gateway-api/releases/tag/v1.6.3
+    compatibility: >-
+      Traefik v3.7 documentation states its Kubernetes Gateway provider supports Standard v1.6.3.
+      The upstream minimum Kubernetes version for v1.6 was not confirmed.
+    checked: "2026-10-23"
+    status: verified
+    kubernetes_minimum_status: unverified
+  traefik:
+    chart: traefik
+    chart_version: "42.1.3"
+    app_version: v3.7.16
+    image: docker.io/traefik:v3.7.16
+    image_index_digest: sha256:c8a121e4bb1347e8fd52657fab12f2cb70b68f8a018895e2068f92c9e519b9c2
+    arm64: {available: true, verified_by: "Registry manifest index lists linux/arm64/v8"}
+    source: https://github.com/traefik/traefik-helm-chart/releases/tag/v42.1.3
+    compatibility: >-
+      Chart kubeVersion >=1.30.0-0. Chart major 42 first shipped 2026-10-15; read its upgrade
+      notes before writing values in Task 7. Gateway API support: Standard v1.6.3.
+    checked: "2026-10-23"
+    status: verified
+  metrics_server:
+    chart: metrics-server
+    chart_version: "3.14.0"
+    app_version: v0.9.0
+    image: registry.k8s.io/metrics-server/metrics-server:v0.9.0
+    image_index_digest: sha256:d9862115e7c7881280d3d75ca26bda8ffc0fc213315979575bf23ce9826205c0
+    arm64: {available: true, verified_by: "Registry manifest list includes linux/arm64/v8"}
+    source: https://github.com/kubernetes-sigs/metrics-server#compatibility-matrix
+    compatibility: Metrics Server 0.9.x supports Kubernetes 1.34+. kind kubelet certificates may need a narrowly scoped lab-only TLS setting (Task 7).
+    checked: "2026-10-23"
+    status: verified
+  argo_cd:
+    chart: argo-cd
+    chart_version: "10.11.1"
+    app_version: v3.5.6
+    image: quay.io/argoproj/argocd:v3.5.6
+    image_index_digest: sha256:8e5cc5bb008df8a09dba439462e58c94c55b7735888d3ebde0c25fc05e4e5335
+    arm64: {available: true, verified_by: "Registry manifest list includes linux/arm64"}
+    source: https://argo-cd.readthedocs.io/en/stable/operator-manual/tested-kubernetes-versions/
+    compatibility: Argo CD 3.5 is tested on Kubernetes 1.33-1.36. v3.6.0 is still a release candidate.
+    checked: "2026-10-23"
+    status: verified
+  kube_prometheus_stack:
+    chart: kube-prometheus-stack
+    chart_version: "92.11.0"
+    app_version: v0.94.1
+    images:
+      prometheus_operator: quay.io/prometheus-operator/prometheus-operator:v0.94.1
+      prometheus: quay.io/prometheus/prometheus:v3.15.0-distroless
+      grafana: docker.io/grafana/grafana:13.2.4
+      kube_state_metrics: registry.k8s.io/kube-state-metrics/kube-state-metrics:v2.20.0
+      node_exporter: quay.io/prometheus/node-exporter:v1.12.1
+    arm64: {available: true, verified_by: "Registry manifest lists for all five images include linux/arm64"}
+    source: https://github.com/prometheus-community/helm-charts/releases/tag/kube-prometheus-stack-92.11.0
+    compatibility: >-
+      Chart released 2026-10-20 with kubeVersion >=1.25.0-0; subcharts grafana 14.0.1,
+      kube-state-metrics 8.6.0, prometheus-node-exporter 4.60.0. Alertmanager stays disabled per
+      the design. An upstream statement of Kubernetes 1.36 support was not found.
+    checked: "2026-10-23"
+    status: verified
+    kubernetes_1_36_support_status: unverified
+  postgres_exporter:
+    version: v0.20.1
+    image: quay.io/prometheuscommunity/postgres-exporter:v0.20.1
+    image_index_digest: sha256:ac5ec343104fae0e2d84a27bb8d69b38430a11910c5382cad85d478d2bab713e
+    arm64: {available: true, verified_by: "Registry manifest list includes linux/arm64"}
+    source: https://github.com/prometheus-community/postgres_exporter/releases/tag/v0.20.1
+    compatibility: README lists CI-tested PostgreSQL 13-18, covering postgres 18.6.
+    checked: "2026-10-23"
+    status: verified

@@ -4,7 +4,7 @@ A local e-commerce application and Kubernetes operations teaching project.
 
 Students receive source code, Dockerfiles, and prebuilt images from the software team, then deploy and operate the application on kind. The course ends with Prometheus metrics and Grafana dashboards. CI and image-building instruction are outside the lessons.
 
-**Current state:** project structure and progress tracking are ready. Application code, dependency files, images, Kubernetes resources, and dashboards have not been implemented.
+**Current state:** the backend database foundation (settings, database sessions, Alembic setup, locked Python dependencies, and disposable test dependencies) is in place. Application features, images, Kubernetes resources, and dashboards have not been implemented. See [project status](PROJECT_STATUS.md) for verified progress.
 
 ## Start here
 
@@ -19,7 +19,7 @@ Students receive source code, Dockerfiles, and prebuilt images from the software
 
 The application is a modular monolith with an asynchronous worker. React serves the storefront; FastAPI owns catalog, carts, inventory, sessions, and orders. PostgreSQL stores business data and an outbox; RabbitMQ delivers tasks to a separately deployed Celery worker. API and worker share Python code.
 
-The target is an Apple M4 MacBook Pro with 24 GB RAM, running kind with one control-plane node and two workers. Supporting tools are Calico, Traefik/Gateway API, Metrics Server, Helm, Argo CD, Prometheus, and Grafana. Exact versions and resource requirements still need validation.
+The target is an Apple M4 MacBook Pro with 24 GB RAM, running kind with one control-plane node and two workers. Supporting tools are Calico, Traefik/Gateway API, Metrics Server, Helm, Argo CD, Prometheus, and Grafana. Selected versions are recorded in [deploy/platform/versions.yaml](deploy/platform/versions.yaml); running them on the cluster and measuring resource requirements are still pending.
 
 ## Project layout
 
@@ -57,4 +57,4 @@ The target is an Apple M4 MacBook Pro with 24 GB RAM, running kind with one cont
     └── superpowers/          # Approved design and detailed implementation plan
 ```
 
-Folders contain placeholders until their owning task is implemented. There are no installation or launch commands yet; they will be added with a tested application foundation.
+Folders contain placeholders until their owning task is implemented. Host prerequisites are listed in [docs/instructor/prerequisites.md](docs/instructor/prerequisites.md). Backend test commands exist (`make help` lists them); application launch commands arrive with later tasks.
