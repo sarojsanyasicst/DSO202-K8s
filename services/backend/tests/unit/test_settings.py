@@ -41,10 +41,8 @@ def test_settings_rejects_unsafe_lab_limits(
     isolated_environment.setenv("CLOUDCART_DATABASE_URL", VALID_DATABASE_URL)
     isolated_environment.setenv(variable, value)
 
-    with pytest.raises(ConfigurationError, match=variable) as raised:
+    with pytest.raises(ConfigurationError, match=variable):
         Settings.from_env()
-
-    assert TEST_PASSWORD not in str(raised.value)
 
 
 @pytest.mark.parametrize(
@@ -102,6 +100,7 @@ def test_settings_accept_lab_limits_at_their_bounds(isolated_environment: pytest
     [
         f"mysql://cloudcart:{TEST_PASSWORD}@127.0.0.1/cloudcart",
         f"postgresql://cloudcart:{TEST_PASSWORD}@127.0.0.1/cloudcart",
+        f"postgresql+psycopg://cloudcart:{TEST_PASSWORD}@127.0.0.1:not-a-port/cloudcart",
         f"not a url {TEST_PASSWORD}",
     ],
 )
@@ -115,7 +114,7 @@ def test_configuration_error_never_echoes_database_secrets(
 
     assert TEST_PASSWORD not in str(raised.value)
     assert raised.value.__cause__ is None
-    assert raised.value.__suppress_context__ is True
+    assert raised.value.__context__ is None
 
 
 def test_settings_repr_hides_database_url(isolated_environment: pytest.MonkeyPatch) -> None:

@@ -8,6 +8,15 @@ from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from cloudcart.config import Settings
 
+# TCP keepalive and user-timeout bounds for established connections. statement_timeout
+# is enforced by the server, so these detect a dead or paused peer from the client side
+# (about 30 s instead of the operating-system defaults of minutes to hours). libpq
+# ignores tcp_user_timeout where the OS lacks it (e.g. macOS); the Linux images use it.
+KEEPALIVES_IDLE_SECONDS = 15
+KEEPALIVES_INTERVAL_SECONDS = 5
+KEEPALIVES_COUNT = 3
+TCP_USER_TIMEOUT_MS = 30_000
+
 # Deterministic constraint names keep Alembic revisions reviewable and reversible.
 NAMING_CONVENTION = {
     "ix": "ix_%(column_0_label)s",
@@ -39,6 +48,11 @@ class Database:
             connect_args={
                 "connect_timeout": settings.db_connect_timeout_seconds,
                 "options": f"-c statement_timeout={settings.db_statement_timeout_ms}",
+                "keepalives": 1,
+                "keepalives_idle": KEEPALIVES_IDLE_SECONDS,
+                "keepalives_interval": KEEPALIVES_INTERVAL_SECONDS,
+                "keepalives_count": KEEPALIVES_COUNT,
+                "tcp_user_timeout": TCP_USER_TIMEOUT_MS,
             },
         )
         # Objects stay readable after commit, e.g. to build an HTTP response.

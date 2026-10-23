@@ -4,6 +4,7 @@ import socket
 from urllib.parse import urlsplit
 
 AMQP_0_9_1_PROTOCOL_HEADER = b"AMQP\x00\x00\x09\x01"
+AMQP_DEFAULT_PORT = 5672
 METHOD_FRAME = 1
 CONNECTION_START = (10, 10)  # (class id, method id)
 
@@ -20,7 +21,7 @@ def receive_exactly(connection: socket.socket, size: int) -> bytes:
 def test_disposable_broker_starts_an_amqp_handshake(test_broker_url: str) -> None:
     parts = urlsplit(test_broker_url)
 
-    with socket.create_connection((parts.hostname, parts.port), timeout=5) as connection:
+    with socket.create_connection((parts.hostname, parts.port or AMQP_DEFAULT_PORT), timeout=5) as connection:
         connection.sendall(AMQP_0_9_1_PROTOCOL_HEADER)
         frame = receive_exactly(connection, 11)
 

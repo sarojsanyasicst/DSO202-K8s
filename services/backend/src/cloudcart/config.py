@@ -39,7 +39,7 @@ class Settings(BaseSettings):
     def _require_psycopg_postgresql_url(cls, value: SecretStr) -> SecretStr:
         try:
             url = make_url(value.get_secret_value())
-        except ArgumentError:
+        except (ArgumentError, ValueError):  # ValueError: e.g. a non-numeric port
             raise ValueError("is not a valid database URL") from None
         if url.drivername != DATABASE_DRIVER:
             raise ValueError(f"must use the {DATABASE_DRIVER}:// driver")
@@ -51,8 +51,10 @@ class Settings(BaseSettings):
         try:
             return cls()
         except ValidationError as error:
-            # `from None` keeps the validation error, which contains raw input values, out of tracebacks.
-            raise ConfigurationError(_describe(error)) from None
+            message = _describe(error)
+        # Raised outside the except block so neither __cause__ nor __context__ holds the
+        # validation error, which contains raw input values such as the database password.
+        raise ConfigurationError(message)
 
 
 def _describe(error: ValidationError) -> str:

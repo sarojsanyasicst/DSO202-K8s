@@ -1,6 +1,6 @@
 # Backend and worker
 
-Python package: `src/cloudcart/`. This directory hosts FastAPI, feature modules, the outbox publisher, and the Celery worker. API and worker share domain models and business logic but run separately.
+Python package: `src/cloudcart/`. It currently contains the settings, database lifecycle, and FastAPI app factory. Feature modules, the outbox publisher, and the Celery worker arrive with later tasks; the API and worker will share domain models and business logic but run separately.
 
 | Folder | Responsibility |
 | --- | --- |

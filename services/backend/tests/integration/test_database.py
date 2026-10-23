@@ -13,8 +13,15 @@ from sqlalchemy.exc import OperationalError
 from sqlalchemy.pool import NullPool
 
 from cloudcart.config import Settings
-from cloudcart.db import Database
+from cloudcart.db import (
+    KEEPALIVES_COUNT,
+    KEEPALIVES_IDLE_SECONDS,
+    KEEPALIVES_INTERVAL_SECONDS,
+    TCP_USER_TIMEOUT_MS,
+    Database,
+)
 from cloudcart.main import create_app
+from support import truncate_application_tables
 
 PROBE_TABLE = "session_scope_probe"
 
@@ -87,6 +94,11 @@ def test_database_sessions_use_bounded_timeouts(test_database_url: str) -> None:
             assert session.execute(text("SHOW statement_timeout")).scalar_one() == "200ms"
             connection_parameters = session.connection().connection.dbapi_connection.info.get_parameters()
             assert connection_parameters["connect_timeout"] == "4"
+            assert connection_parameters["keepalives"] == "1"
+            assert connection_parameters["keepalives_idle"] == str(KEEPALIVES_IDLE_SECONDS)
+            assert connection_parameters["keepalives_interval"] == str(KEEPALIVES_INTERVAL_SECONDS)
+            assert connection_parameters["keepalives_count"] == str(KEEPALIVES_COUNT)
+            assert connection_parameters["tcp_user_timeout"] == str(TCP_USER_TIMEOUT_MS)
         assert database.engine.pool.timeout() == 3
 
         with pytest.raises(OperationalError, match="statement timeout"):
@@ -121,3 +133,26 @@ def backend_is_connected(database_url: str, backend_pid: int) -> bool:
             ).scalar_one()
     finally:
         engine.dispose()
+
+
+def test_truncate_application_tables_empties_tables_and_keeps_alembic_version(database: Database) -> None:
+    with database.engine.connect() as connection:
+        transaction = connection.begin()  # rolled back, so the probe rows never persist
+        try:
+            connection.execute(
+                text("CREATE TABLE truncate_probe (id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY, label text)")
+            )
+            connection.execute(text("INSERT INTO truncate_probe (label) VALUES ('first'), ('second')"))
+            connection.execute(text("INSERT INTO alembic_version (version_num) VALUES ('probe_revision')"))
+            versions_before = set(connection.execute(text("SELECT version_num FROM alembic_version")).scalars())
+
+            truncate_application_tables(connection)
+
+            assert connection.execute(text("SELECT count(*) FROM truncate_probe")).scalar_one() == 0
+            restarted_id = connection.execute(
+                text("INSERT INTO truncate_probe (label) VALUES ('after') RETURNING id")
+            ).scalar_one()
+            assert restarted_id == 1
+            assert set(connection.execute(text("SELECT version_num FROM alembic_version")).scalars()) == versions_before
+        finally:
+            transaction.rollback()

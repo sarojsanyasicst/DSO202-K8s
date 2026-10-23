@@ -3,10 +3,14 @@
 # Every entry records the exact version, ARM64 availability and how it was
 # verified, an official source, a compatibility note, the check date, and a
 # status:
-#   verified    - confirmed from a primary source (release notes, registry
-#                 manifest, package index) on the check date.
-#   unverified  - not confirmed from a primary source; do not rely on it
-#                 until a later task checks it.
+#   verified            - confirmed from a primary source (release notes, registry
+#                         manifest, package index) on the check date.
+#   partially_verified  - version and ARM64 availability confirmed from a primary
+#                         source, but at least one compatibility dimension is not;
+#                         each such dimension is named by a `<dimension>_status:
+#                         unverified` key in the entry.
+#   unverified          - not confirmed from a primary source; do not rely on it
+#                         until a later task checks it.
 # "Selected" is not "proven on the cluster": installing and exercising these
 # components on the M4 kind cluster happens in later milestones.
 #
@@ -174,7 +178,7 @@ data_services:
     arm64:
       available: true
       verified_by: Registry manifest index lists linux/arm64/v8; image pulled and run as a healthy container via tests/compose.yaml on the M4 (2026-10-23).
-    source: https://hub.docker.com/_/postgres
+    source: https://www.postgresql.org/docs/release/18.6/
     compatibility: >-
       Latest stable release; PostgreSQL 19 is still at 19rc1. postgres_exporter v0.20.1 CI-tests
       PostgreSQL 13-18. Debian trixie variant chosen over Alpine for glibc locale behaviour.
@@ -241,7 +245,7 @@ kubernetes_platform:
       operator: quay.io/tigera/operator:v1.44.0
       node: quay.io/calico/node:v3.33.0
     arm64: {available: true, verified_by: "Registry manifest lists for quay.io/calico/node:v3.33.0, quay.io/calico/calico:v3.33.0 and quay.io/tigera/operator:v1.44.0 include linux/arm64; docs list arm64 processors"}
-    source: https://docs.tigera.io/calico/latest/getting-started/kubernetes/requirements
+    source: https://docs.tigera.io/calico/3.33/getting-started/kubernetes/requirements
     compatibility: >-
       Tested against Kubernetes 1.35, 1.36 and 1.37 (Calico 3.33 requirements page). Operator
       version taken from manifests/tigera-operator.yaml at tag v3.33.0. The kind-specific
@@ -258,7 +262,7 @@ kubernetes_platform:
       Traefik v3.7 documentation states its Kubernetes Gateway provider supports Standard v1.6.3.
       The upstream minimum Kubernetes version for v1.6 was not confirmed.
     checked: "2026-10-23"
-    status: verified
+    status: partially_verified
     kubernetes_minimum_status: unverified
   traefik:
     chart: traefik
@@ -280,7 +284,7 @@ kubernetes_platform:
     image: registry.k8s.io/metrics-server/metrics-server:v0.9.0
     image_index_digest: sha256:d9862115e7c7881280d3d75ca26bda8ffc0fc213315979575bf23ce9826205c0
     arm64: {available: true, verified_by: "Registry manifest list includes linux/arm64/v8"}
-    source: https://github.com/kubernetes-sigs/metrics-server#compatibility-matrix
+    source: https://github.com/kubernetes-sigs/metrics-server/blob/v0.9.0/README.md#compatibility-matrix
     compatibility: Metrics Server 0.9.x supports Kubernetes 1.34+. kind kubelet certificates may need a narrowly scoped lab-only TLS setting (Task 7).
     checked: "2026-10-23"
     status: verified
@@ -291,7 +295,7 @@ kubernetes_platform:
     image: quay.io/argoproj/argocd:v3.5.6
     image_index_digest: sha256:8e5cc5bb008df8a09dba439462e58c94c55b7735888d3ebde0c25fc05e4e5335
     arm64: {available: true, verified_by: "Registry manifest list includes linux/arm64"}
-    source: https://argo-cd.readthedocs.io/en/stable/operator-manual/tested-kubernetes-versions/
+    source: https://argo-cd.readthedocs.io/en/release-3.5/operator-manual/tested-kubernetes-versions/
     compatibility: Argo CD 3.5 is tested on Kubernetes 1.33-1.36. v3.6.0 is still a release candidate.
     checked: "2026-10-23"
     status: verified
@@ -312,7 +316,7 @@ kubernetes_platform:
       kube-state-metrics 8.6.0, prometheus-node-exporter 4.60.0. Alertmanager stays disabled per
       the design. An upstream statement of Kubernetes 1.36 support was not found.
     checked: "2026-10-23"
-    status: verified
+    status: partially_verified
     kubernetes_1_36_support_status: unverified
   postgres_exporter:
     version: v0.20.1
@@ -321,5 +325,51 @@ kubernetes_platform:
     arm64: {available: true, verified_by: "Registry manifest list includes linux/arm64"}
     source: https://github.com/prometheus-community/postgres_exporter/releases/tag/v0.20.1
     compatibility: README lists CI-tested PostgreSQL 13-18, covering postgres 18.6.
+    checked: "2026-10-23"
+    status: verified
+
+# Not installed or built yet: recorded for the tasks that own them.
+planned_platform_components:
+  kind_local_path_provisioner:
+    owner: Task 7
+    images:
+      provisioner: docker.io/kindest/local-path-provisioner:v20260521-9fb22683
+      helper: docker.io/kindest/local-path-helper:v20260131-7181c60a
+    image_index_digests:
+      provisioner: sha256:b1de813bcdde9737a283ff1961725d66c412b235fe08f2a3dc707fece91674b8
+      helper: sha256:ac7c7f08e86f7bef7d2ad6dee944ed89d3d2e7de0ebc00490d7ddf6c26628a06
+    storage_class: standard (default, volumeBindingMode WaitForFirstConsumer, reclaimPolicy Delete)
+    arm64: {available: true, verified_by: "Registry manifest indexes for both images list linux/arm64"}
+    source: https://github.com/kubernetes-sigs/kind/blob/v0.32.0/pkg/build/nodeimage/const_storage.go
+    compatibility: >-
+      Bundled in kind v0.32.0 node images (kind's customised rancher local-path-provisioner;
+      data under /var on the node). This is the local dynamic storage for the PostgreSQL and
+      RabbitMQ PVCs. PVC binding and reset behaviour are verified in Task 7.
+    checked: "2026-10-23"
+    status: verified
+  nginx:
+    owner: Tasks 5 and 6 (frontend static-asset server)
+    version: "1.30.6"
+    image: nginx:1.30.6-trixie
+    image_index_digest: sha256:a7675fcee220f59b4a99f7098c06a0d5d999c2c0ee37c0211efb780536e5cb20
+    arm64: {available: true, verified_by: "Registry manifest index lists linux/arm64/v8"}
+    source: https://nginx.org/en/CHANGES-1.30
+    compatibility: >-
+      Current nginx stable line (1.30.6; mainline is 1.31.8). The official image runs as root by
+      default; Task 6 decides between configuring it as non-root and the
+      nginxinc/nginx-unprivileged image (tag 1.30.6-alpine exists with arm64 per the Docker Hub
+      API), and may choose an Alpine variant.
+    checked: "2026-10-23"
+    status: verified
+  node:
+    owner: Task 5 (frontend build image and local toolchain)
+    version: "24.22.1"
+    image: node:24.22.1-trixie-slim
+    image_index_digest: sha256:43b9ba1142b8dcf33fa8f922ca1be85714adc444e0586c7cf7726daaeabc1bea
+    arm64: {available: true, verified_by: "Registry manifest index lists linux/arm64/v8"}
+    source: https://nodejs.org/en/blog/release/v24.22.1
+    compatibility: >-
+      Newest LTS release (24.x "Krypton") per nodejs.org/dist/index.json; Node 26.12.1 is current
+      but not yet LTS. Host has v24.12.0 (same major). Used only to build static assets.
     checked: "2026-10-23"
     status: verified

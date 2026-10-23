@@ -15,7 +15,7 @@ What the instructor's Apple Silicon Mac needs before working on CloudCart, and h
 | Tool | Pinned / minimum | Used for | Check | Observed 2026-10-23 |
 | --- | --- | --- | --- | --- |
 | Docker Desktop (Engine) | Engine 29.x | Test dependencies, kind nodes | `docker version --format '{{.Server.Version}}'` | 29.5.3 (CLI 29.1.3) |
-| Docker Compose plugin | Compose v2 or newer with `up --wait` | `make test-deps-up` | `docker compose version` | v5.1.4 |
+| Docker Compose plugin | Compose v2 or newer supporting `up --wait --wait-timeout` (used by the Makefile) | `make test-deps-up` | `docker compose version` | v5.1.4 |
 | GNU make | 3.81 or newer (macOS default is 3.81) | `make` targets | `make --version` | 3.81 |
 | git | Any current release | Version control, Argo CD source | `git --version` | 2.54.0 |
 | uv | 0.12.17 or newer | Python interpreter, locked dependencies, test runs | `uv --version` | 0.12.17 |

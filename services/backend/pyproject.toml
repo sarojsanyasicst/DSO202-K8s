@@ -4,8 +4,8 @@ version = "0.1.0"
 description = "CloudCart backend: FastAPI API and Celery worker sharing one Python package."
 readme = "README.md"
 # One CPython minor: 3.13 is the newest minor that every planned dependency,
-# including Celery and Kombu, declares support for. It matches the
-# python:3.13-slim base image recorded in deploy/platform/versions.yaml.
+# including Celery and Kombu, declares support for. It matches the pinned
+# python:3.13.17-slim-trixie base image recorded in deploy/platform/versions.yaml.
 requires-python = ">=3.13,<3.14"
 dependencies = [
     "alembic>=1.20.1",
@@ -28,6 +28,7 @@ build-backend = "uv_build"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["tests"]
 addopts = ["-ra", "--strict-markers", "--strict-config"]
 filterwarnings = ["error"]
 xfail_strict = true
