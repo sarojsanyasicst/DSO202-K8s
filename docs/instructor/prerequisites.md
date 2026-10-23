@@ -18,15 +18,15 @@ What the instructor's Apple Silicon Mac needs before working on CloudCart, and h
 | Docker Compose plugin | Compose v2 or newer with `up --wait` | `make test-deps-up` | `docker compose version` | v5.1.4 |
 | GNU make | 3.81 or newer (macOS default is 3.81) | `make` targets | `make --version` | 3.81 |
 | git | Any current release | Version control, Argo CD source | `git --version` | 2.54.0 |
-| uv | **0.13.5 or newer recommended**; 0.12.17 works with a caveat | Python interpreter, locked dependencies, test runs | `uv --version` | 0.12.17 |
-| Python | CPython 3.15 (provided by uv; no system Python needed) | Backend | `uv run --project services/backend python -VV` | 3.15.0rc2 via uv 0.12.17 |
+| uv | 0.12.17 or newer | Python interpreter, locked dependencies, test runs | `uv --version` | 0.12.17 |
+| Python | CPython 3.13 (provided by uv; no system Python needed) | Backend | `uv run --project services/backend python -VV` | 3.13.15 via uv 0.12.17 |
 | kind | v0.32.0 (pinned) | Local cluster (Task 7) | `kind version` | v0.32.0 |
 | kubectl | v1.35–v1.37 (within one minor of Kubernetes v1.36) | Cluster operations | `kubectl version --client` | v1.36.4 |
 | Helm | v4.3.x (pinned v4.3.1) | Charts (Tasks 7, 10, 11) | `helm version --short` | v4.3.0 |
 | Node.js / npm | To be pinned by Task 5 | Frontend build and browser tests | `node --version`; `npm --version` | v24.12.0 / 11.6.2 |
 | promtool | To be pinned by Task 11 | Prometheus rule tests | `promtool --version` | not installed |
 
-The uv caveat: uv 0.12.17 only knows a release candidate, CPython 3.15.0rc2. It installs that automatically when the backend requires Python 3.15. uv 0.13.5 (2026-10-22) adds managed CPython 3.15.1, which matches the `python:3.15.1-slim-trixie` image. After upgrading uv, run `uv python install 3.15` and recreate `services/backend/.venv`, for example by deleting it and rerunning `make test-unit`.
+The backend is pinned to Python 3.13 because Celery and Kombu declare support only up to 3.13. uv 0.12.17 offers managed CPython up to 3.13.15; the release image is `python:3.13.17-slim-trixie`. A newer uv can provide the matching patch: run `uv python install 3.13`, then recreate `services/backend/.venv`, for example by deleting it and rerunning `make test-unit`.
 
 Nothing on this list is installed or upgraded by the project's commands, except the interpreter and Python packages uv manages.
 

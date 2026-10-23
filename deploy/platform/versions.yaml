@@ -25,28 +25,43 @@ host_observed:
 
 python:
   runtime:
-    version: "3.15"
-    patch: "3.15.1"
-    image: python:3.15.1-slim-trixie
-    image_index_digest: sha256:08275f764e022331c6d3e3ca55d8cce01fa4684b02111adf0445d71806fe7941
+    version: "3.13"
+    patch: "3.13.17"
+    image: python:3.13.17-slim-trixie
+    image_index_digest: sha256:fe14fd57a4c0361110eaa0c284112b189750bcb43fb04bb5d1ee7b7744027ccf
     arm64:
       available: true
-      verified_by: Registry manifest index for python:3.15.1-slim-trixie lists linux/arm64/v8 (python:3.15-slim also exists).
-    source: https://www.python.org/downloads/release/python-3151/
+      verified_by: >-
+        Registry manifest index for python:3.13.17-slim-trixie (queried from registry-1.docker.io,
+        not pulled) lists linux/arm64/v8; digest matches the Docker Hub tag API.
+    source: https://www.python.org/downloads/release/python-31317/
     reason: >-
-      Newest CPython minor (3.15.0 released 2026-10-09; 3.15.1 on 2026-10-21; 3.16 unreleased).
-      Every locked backend dependency is pure Python or publishes cp315 macOS arm64 and
-      manylinux aarch64 wheels (see backend_libraries), and the official slim image exists.
+      Newest CPython minor that every planned Python dependency declares support for: Celery 5.6.3
+      and Kombu 5.6.2 (classifiers stop at 3.13) gate it. Every locked compiled dependency publishes
+      cp313 macOS arm64 and manylinux aarch64 wheels (see backend_libraries). Also avoids running
+      tests on a release-candidate interpreter.
     compatibility: >-
-      pyproject.toml pins requires-python ">=3.15,<3.16". uv 0.12.17 (observed) can only
-      provision CPython 3.15.0rc2; uv 0.13.5 (2026-10-22) adds managed CPython 3.15.1.
-      Celery/Kombu do not yet declare Python 3.15 support (see planned_python_libraries).
-    fallback: CPython 3.14.9, image python:3.14.9-slim-trixie (index sha256:b347e2dcbc7f0b6f9fb7182e9da6a187fb10ae715e0692518c1aed0eec94a700, linux/arm64/v8 listed).
+      pyproject.toml pins requires-python ">=3.13,<3.14". 3.13 receives security fixes until
+      2029-10-31 (bugfix phase ended 2026-10-01). uv 0.12.17 (observed) provisions at most
+      CPython 3.13.15 locally; the image carries 3.13.17. Patch-level differences are not
+      expected to matter but local runs and the image are not byte-identical.
+    local_test_interpreter: CPython 3.13.15 (uv-managed)
+    rejected_alternatives:
+      "3.15":
+        candidate: CPython 3.15.1, image python:3.15.1-slim-trixie (index sha256:08275f764e022331c6d3e3ca55d8cce01fa4684b02111adf0445d71806fe7941)
+        reason: >-
+          Locked wheels exist, but Celery/Kombu do not declare 3.15 support, and uv 0.12.17 can only
+          provision the 3.15.0rc2 release candidate, which does not match the release image.
+      "3.14":
+        candidate: CPython 3.14.9, image python:3.14.9-slim-trixie (index sha256:b347e2dcbc7f0b6f9fb7182e9da6a187fb10ae715e0692518c1aed0eec94a700)
+        reason: >-
+          Locked wheels exist, but Celery 5.6.3 and Kombu 5.6.2 declare support only up to 3.13;
+          only the Celery 5.7.0rc1 pre-release declares 3.14.
     checked: "2026-10-23"
     status: verified
 
-# Locked in services/backend/uv.lock. ARM64 evidence for compiled packages: cp315
-# wheel files listed in uv.lock and on PyPI; the rest ship py3-none-any wheels.
+# Locked in services/backend/uv.lock. ARM64 evidence for compiled packages: cp313
+# wheel files listed in uv.lock; the rest ship py3-none-any wheels.
 backend_libraries:
   fastapi:
     version: "0.161.1"
@@ -78,9 +93,9 @@ backend_libraries:
     status: verified
   pydantic_core:
     version: "2.50.1"
-    arm64: {available: true, verified_by: "uv.lock/PyPI list pydantic_core-2.50.1-cp315-cp315-macosx_11_0_arm64.whl and -cp315-cp315-manylinux_2_17_aarch64.manylinux2014_aarch64.whl"}
+    arm64: {available: true, verified_by: "uv.lock lists pydantic_core-2.50.1-cp313-cp313-macosx_11_0_arm64.whl and -cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl"}
     source: https://pypi.org/project/pydantic-core/2.50.1/
-    compatibility: Compiled extension; cp315 wheels published 2026-10-11.
+    compatibility: Compiled extension; cp313 arm64 wheels for macOS and Linux are published.
     checked: "2026-10-23"
     status: verified
   pydantic_settings:
@@ -92,14 +107,14 @@ backend_libraries:
     status: verified
   sqlalchemy:
     version: "2.1.6"
-    arm64: {available: true, verified_by: "uv.lock/PyPI list sqlalchemy-2.1.6-cp315-cp315-macosx_11_0_arm64.whl and -cp315-cp315-manylinux2014_aarch64...manylinux_2_28_aarch64.whl, plus a py3-none-any wheel"}
+    arm64: {available: true, verified_by: "uv.lock lists sqlalchemy-2.1.6-cp313-cp313-macosx_11_0_arm64.whl and -cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl, plus a py3-none-any wheel"}
     source: https://pypi.org/project/SQLAlchemy/2.1.6/
     compatibility: Synchronous engine with the psycopg 3 dialect (postgresql+psycopg); greenlet is not required for synchronous use in 2.1.
     checked: "2026-10-23"
     status: verified
   alembic:
     version: "1.20.1"
-    arm64: {available: true, verified_by: "Pure-Python wheel in uv.lock (Mako 1.4.3 pure; MarkupSafe 3.0.4 has cp315 arm64 wheels)"}
+    arm64: {available: true, verified_by: "Pure-Python wheel in uv.lock (Mako 1.4.3 pure; uv.lock lists markupsafe-3.0.4-cp313-cp313-macosx_11_0_arm64.whl and -cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl)"}
     source: https://pypi.org/project/alembic/1.20.1/
     compatibility: Supports SQLAlchemy 2.1; migrations run online through services/backend/alembic/env.py.
     checked: "2026-10-23"
@@ -107,7 +122,7 @@ backend_libraries:
   psycopg:
     version: "3.3.6"
     extras: [binary]
-    arm64: {available: true, verified_by: "uv.lock/PyPI list psycopg_binary-3.3.6-cp315-cp315-macosx_11_0_arm64.whl and -cp315-cp315-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl"}
+    arm64: {available: true, verified_by: "uv.lock lists psycopg_binary-3.3.6-cp313-cp313-macosx_11_0_arm64.whl and -cp313-cp313-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl"}
     source: https://pypi.org/project/psycopg/3.3.6/
     compatibility: psycopg-binary bundles libpq, so the slim image needs no system libpq; manylinux_2_28 matches Debian trixie glibc.
     checked: "2026-10-23"
@@ -138,18 +153,18 @@ planned_python_libraries:
     arm64: {available: true, verified_by: "PyPI lists only celery-5.6.3-py3-none-any.whl and an sdist (pure Python)"}
     source: https://pypi.org/project/celery/5.6.3/
     compatibility: >-
-      Latest stable (2026-03-26); 5.7.0rc1 (2026-10-18) is a pre-release. 5.6.3 classifiers stop
-      at Python 3.13 and 5.7.0rc1 at 3.14; neither declares 3.15. Task 4 must prove the worker on
-      Python 3.15 or revisit the Python pin.
+      Latest stable (2026-03-26); 5.7.0rc1 (2026-10-18) is a pre-release. 5.6.3 classifiers
+      include Python 3.13, the pinned runtime; Task 4 still proves the worker against the real
+      broker.
     checked: "2026-10-23"
-    status: unverified
+    status: verified
   kombu:
     version: "5.6.2"
     arm64: {available: true, verified_by: "PyPI lists only kombu-5.6.2-py3-none-any.whl and an sdist (pure Python)"}
     source: https://pypi.org/project/kombu/5.6.2/
-    compatibility: Latest stable (2025-12-29), paired with Celery 5.6.x; classifiers stop at Python 3.13. billiard 4.3.1 (pure Python) declares up to 3.14.
+    compatibility: Latest stable (2025-12-29), paired with Celery 5.6.x; classifiers include Python 3.13. billiard 4.3.1 (pure Python) declares 3.10-3.14.
     checked: "2026-10-23"
-    status: unverified
+    status: verified
 
 data_services:
   postgresql:

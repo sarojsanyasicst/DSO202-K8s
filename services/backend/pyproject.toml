@@ -3,9 +3,10 @@ name = "cloudcart"
 version = "0.1.0"
 description = "CloudCart backend: FastAPI API and Celery worker sharing one Python package."
 readme = "README.md"
-# One CPython minor, matching the python:3.15-slim base image recorded in
-# deploy/platform/versions.yaml.
-requires-python = ">=3.15,<3.16"
+# One CPython minor: 3.13 is the newest minor that every planned dependency,
+# including Celery and Kombu, declares support for. It matches the
+# python:3.13-slim base image recorded in deploy/platform/versions.yaml.
+requires-python = ">=3.13,<3.14"
 dependencies = [
     "alembic>=1.20.1",
     "fastapi>=0.161.1",
