@@ -77,13 +77,6 @@ backend_libraries:
     compatibility: Transitive FastAPI dependency.
     checked: "2026-10-23"
     status: verified
-  uvicorn:
-    version: "0.54.0"
-    arm64: {available: true, verified_by: "Pure-Python wheel in uv.lock; installed without the [standard] extras"}
-    source: https://pypi.org/project/uvicorn/0.54.0/
-    compatibility: One Uvicorn process per API Pod (plan); launch command is added in Task 6.
-    checked: "2026-10-23"
-    status: verified
   pydantic:
     version: "2.14.1"
     arm64: {available: true, verified_by: "Pure-Python wheel in uv.lock"}
@@ -148,6 +141,13 @@ backend_libraries:
 
 # Not locked yet: recorded for the tasks that add them.
 planned_python_libraries:
+  uvicorn:
+    version: "0.54.0"
+    arm64: {available: true, verified_by: "Pure-Python wheel uvicorn-0.54.0-py3-none-any.whl (seen in a uv.lock resolution on 2026-10-23); plan to install without the [standard] extras"}
+    source: https://pypi.org/project/uvicorn/0.54.0/
+    compatibility: Not locked in Task 1. Added with Task 6's API launch command; one Uvicorn process per API Pod (plan).
+    checked: "2026-10-23"
+    status: verified
   celery:
     version: "5.6.3"
     arm64: {available: true, verified_by: "PyPI lists only celery-5.6.3-py3-none-any.whl and an sdist (pure Python)"}
