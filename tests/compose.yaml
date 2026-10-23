@@ -1,0 +1,46 @@
+# Disposable PostgreSQL and RabbitMQ for CloudCart backend tests.
+#
+# TEST-ONLY: the credentials below are throwaway values for containers that
+# listen on 127.0.0.1 only and keep their data in tmpfs. They are not, and
+# must never become, deployment credentials.
+#
+# Start/stop with `make test-deps-up` / `make test-deps-down`. Image tags must
+# match deploy/platform/versions.yaml.
+name: cloudcart-test
+
+services:
+  postgres:
+    image: postgres:18.6-trixie
+    environment:
+      POSTGRES_USER: cloudcart_test
+      POSTGRES_PASSWORD: cloudcart_test_only
+    ports:
+      - "127.0.0.1:15432:5432"
+    tmpfs:
+      - /var/lib/postgresql
+    healthcheck:
+      # TCP check: the image's temporary init server listens on a socket only,
+      # so this passes once the real server accepts network connections.
+      test: ["CMD", "pg_isready", "--host=127.0.0.1", "--username=cloudcart_test", "--dbname=postgres"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+      start_period: 10s
+
+  rabbitmq:
+    image: rabbitmq:4.3.7-management
+    environment:
+      RABBITMQ_DEFAULT_USER: cloudcart_test
+      RABBITMQ_DEFAULT_PASS: cloudcart_test_only
+    ports:
+      - "127.0.0.1:15672:5672"   # AMQP 0-9-1
+      - "127.0.0.1:15673:15672"  # management UI and HTTP API
+    tmpfs:
+      - /var/lib/rabbitmq
+    healthcheck:
+      # Passes only when every configured listener accepts TCP connections.
+      test: ["CMD", "rabbitmq-diagnostics", "--quiet", "check_port_connectivity"]
+      interval: 5s
+      timeout: 15s
+      retries: 24
+      start_period: 20s
