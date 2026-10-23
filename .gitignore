@@ -1,0 +1,47 @@
+# Local environments and configuration
+.local/
+.env
+.env.*
+!.env.example
+.venv/
+venv/
+.kube/
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Frontend
+node_modules/
+dist/
+coverage/
+playwright-report/
+test-results/
+*.tsbuildinfo
+
+# Credentials and local cryptographic material
+*.key
+*.pem
+*.p12
+*.pfx
+
+# Generated artifacts; sanitized release JSON stays trackable
+artifacts/images/
+artifacts/verification/
+artifacts/backups/
+*.tar
+*.tar.gz
+*.tgz
+*.log
+
+# Generated graph local runtime/cache material
+graphify-out/.graphify_python
+graphify-out/.graphify_root
