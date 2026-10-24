@@ -6,6 +6,7 @@ postgresql+psycopg://USER:PASSWORD@HOST:5432/DBNAME.
 """
 
 from typing import Self
+from urllib.parse import urlsplit
 
 from pydantic import Field, SecretStr, ValidationError, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -14,6 +15,7 @@ from sqlalchemy.exc import ArgumentError
 
 ENV_PREFIX = "CLOUDCART_"
 DATABASE_DRIVER = "postgresql+psycopg"
+BROKER_SCHEMES = ("amqp", "amqps")
 
 
 class ConfigurationError(RuntimeError):
@@ -37,6 +39,19 @@ class Settings(BaseSettings):
     lab_cpu_work_ms: int = Field(default=200, ge=1, le=2000)
     lab_max_concurrency: int = Field(default=2, ge=1, le=8)
 
+    # RabbitMQ, e.g. amqp://USER:PASSWORD@HOST:5672//. The API's outbox publisher and the
+    # worker need it; migrations and the seed command do not.
+    broker_url: SecretStr | None = None
+    # Bounds every broker connect, read, write, and publisher confirm.
+    broker_timeout_seconds: int = Field(default=5, ge=1, le=60)
+    publisher_enabled: bool = True
+    # How long an idle publisher waits before looking for new outbox events.
+    publisher_interval_ms: int = Field(default=1000, ge=100, le=60_000)
+    # Simulated packing and dispatch time per order, so a backlog is observable.
+    fulfillment_delay_ms: int = Field(default=1000, ge=0, le=5000)
+    # First retry delay; each further retry doubles it.
+    fulfillment_retry_backoff_ms: int = Field(default=1000, ge=10, le=10_000)
+
     @field_validator("database_url")
     @classmethod
     def _require_psycopg_postgresql_url(cls, value: SecretStr) -> SecretStr:
@@ -47,6 +62,28 @@ class Settings(BaseSettings):
         if url.drivername != DATABASE_DRIVER:
             raise ValueError(f"must use the {DATABASE_DRIVER}:// driver")
         return value
+
+    @field_validator("broker_url")
+    @classmethod
+    def _require_amqp_url(cls, value: SecretStr | None) -> SecretStr | None:
+        if value is None:
+            return value
+        try:
+            url = urlsplit(value.get_secret_value())
+            url.port  # parsing the port raises ValueError when it is not a number
+        except ValueError:
+            raise ValueError("is not a valid broker URL") from None
+        if url.scheme not in BROKER_SCHEMES or not url.hostname:
+            raise ValueError(f"must be an {' or '.join(BROKER_SCHEMES)}:// URL with a host")
+        return value
+
+    def require_broker_url(self, component: str) -> str:
+        """The broker URL, or a ConfigurationError naming the variable when `component` needs it and it is missing."""
+        if self.broker_url is None:
+            raise ConfigurationError(
+                f"Invalid CloudCart configuration: {ENV_PREFIX}BROKER_URL: required by {component}"
+            )
+        return self.broker_url.get_secret_value()
 
     @classmethod
     def from_env(cls) -> Self:

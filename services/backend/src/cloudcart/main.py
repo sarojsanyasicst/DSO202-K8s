@@ -15,6 +15,7 @@ from cloudcart.catalog.routes import router as catalog_router
 from cloudcart.config import Settings
 from cloudcart.db import Database
 from cloudcart.identity.routes import router as identity_router
+from cloudcart.jobs.publisher import OutboxPublisher
 from cloudcart.orders.routes import router as orders_router
 
 API_PREFIX = "/api/v1"
@@ -22,15 +23,26 @@ MAX_REQUEST_BODY_BYTES = 16 * 1024
 
 
 def create_app(settings: Settings) -> FastAPI:
-    """Build the API. The database engine lives exactly as long as the application's lifespan."""
+    """Build the API. The database engine and the outbox publisher live exactly as long as the application's lifespan.
+
+    The publisher runs unless `publisher_enabled` is false, and then needs a broker URL:
+    an API that accepts orders but can never publish them must not start.
+    """
+    if settings.publisher_enabled:
+        settings.require_broker_url("the API's outbox publisher")
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         database = Database(settings)
         app.state.database = database
+        publisher = OutboxPublisher(database.session_factory, settings) if settings.publisher_enabled else None
+        if publisher is not None:
+            publisher.start()
         try:
             yield
         finally:
+            if publisher is not None:
+                publisher.stop()
             database.dispose()
 
     app = FastAPI(title="CloudCart", lifespan=lifespan)

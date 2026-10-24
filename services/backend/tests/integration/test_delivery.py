@@ -51,7 +51,9 @@ def unpublished_events(database: Database) -> list[UUID]:
 
 
 def claimed_events(database: Database) -> list[UUID]:
-    return [event_id for (event_id,) in run_sql(database, "SELECT id FROM outbox_events WHERE claimed_until IS NOT NULL")]
+    return [
+        event_id for (event_id,) in run_sql(database, "SELECT id FROM outbox_events WHERE claimed_until IS NOT NULL")
+    ]
 
 
 def queued_event_ids(broker_url: str) -> list[str]:
@@ -179,9 +181,7 @@ def test_an_unroutable_message_is_not_marked_published(
     assert queued_event_ids(broker_url) == [str(unroutable.event_id)]
 
 
-def test_two_publishers_running_together_publish_each_event_exactly_once(
-    database: Database, broker_url: str
-) -> None:
+def test_two_publishers_running_together_publish_each_event_exactly_once(database: Database, broker_url: str) -> None:
     product_id = add_product(database, stock=40)
     placed = [place_order(database, product_id, quantity=1) for _ in range(40)]
 
@@ -225,8 +225,16 @@ def test_live_claims_are_left_to_their_publisher_and_expired_claims_are_taken_ov
     database: Database, broker_url: str, publisher: OrderPublisher
 ) -> None:
     live, expired = place_order(database), place_order(database)
-    run_sql(database, "UPDATE outbox_events SET claimed_until = now() + interval '1 minute' WHERE id = :id", id=live.event_id)
-    run_sql(database, "UPDATE outbox_events SET claimed_until = now() - interval '1 second' WHERE id = :id", id=expired.event_id)
+    run_sql(
+        database,
+        "UPDATE outbox_events SET claimed_until = now() + interval '1 minute' WHERE id = :id",
+        id=live.event_id,
+    )
+    run_sql(
+        database,
+        "UPDATE outbox_events SET claimed_until = now() - interval '1 second' WHERE id = :id",
+        id=expired.event_id,
+    )
 
     assert publish_batch(database.session_factory, publisher) == 1
 

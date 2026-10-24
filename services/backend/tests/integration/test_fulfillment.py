@@ -15,6 +15,8 @@ from datetime import UTC, datetime
 from uuid import uuid4
 
 import pytest
+from sqlalchemy import text
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
 from cloudcart.cart.service import set_cart_item
@@ -161,6 +163,38 @@ def test_failing_a_multi_product_order_returns_every_line(database: Database) ->
         fail_order(session, order.id, "failed")
 
     assert (stock_of(database, mug), stock_of(database, cap)) == (5, 2)
+
+
+def test_returning_stock_locks_products_in_id_order_like_checkout(
+    database: Database, two_sessions: tuple[Session, Session]
+) -> None:
+    """The same lock order as checkout (D025), so a failure and a checkout cannot deadlock."""
+    holder, failing = two_sessions
+    low, high = sorted([add_product(database, stock=5), add_product(database, stock=5)])
+    with database.session_scope() as session:
+        guest = ensure_guest(session, None)
+        set_cart_item(session, guest.guest_id, high, 1)
+        cart = set_cart_item(session, guest.guest_id, low, 1)
+        order = checkout(session, guest.guest_id, cart.version, "approved", "lock-order-0001").order
+    holder_pid, failing_pid = backend_pid(holder), backend_pid(failing)
+    holder.execute(text("SELECT id FROM products WHERE id = :id FOR UPDATE"), {"id": high})
+    probe = database.session_factory()
+    try:
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            returning = pool.submit(fail_order, failing, order.id, "failed")
+            try:
+                wait_until_blocked(database, failing_pid, by=holder_pid)
+                # While it waits for the higher id, it already holds the lower one.
+                with pytest.raises(OperationalError, match="could not obtain lock"):
+                    probe.execute(text("SELECT id FROM products WHERE id = :id FOR NO KEY UPDATE NOWAIT"), {"id": low})
+            finally:
+                holder.rollback()
+            returning.result(timeout=LOCK_WAIT_TIMEOUT_SECONDS)
+        failing.commit()
+    finally:
+        probe.close()
+
+    assert (stock_of(database, low), stock_of(database, high)) == (5, 5)
 
 
 def test_attempts_are_counted_in_postgresql_and_stop_at_the_limit(database: Database) -> None:
@@ -313,6 +347,19 @@ def test_sigterm_during_a_task_lets_it_finish_and_acknowledges_it(
 
     assert order_state(database, placed.order_id) == ("fulfilled", 1, 1)
     assert orders_queue_state(broker_url) == (0, 0)
+
+
+def test_an_idle_worker_stops_within_seconds_of_sigterm(
+    broker_url: str, start_worker: Callable[..., WorkerProcess]
+) -> None:
+    worker = start_worker()
+    time.sleep(1)  # idle in its event loop
+
+    started = time.monotonic()
+    assert worker.terminate() == 0
+
+    assert time.monotonic() - started < 3
+    assert orders_queue_state(broker_url)[1] == 0
 
 
 def test_a_database_outage_delays_fulfillment_without_using_up_attempts(
