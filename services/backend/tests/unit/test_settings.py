@@ -82,6 +82,16 @@ def test_settings_defaults_keep_lab_disabled_and_timeouts_bounded(
     assert settings.db_statement_timeout_ms == 5000
 
 
+def test_settings_default_to_secure_cookies(isolated_environment: pytest.MonkeyPatch) -> None:
+    isolated_environment.setenv("CLOUDCART_DATABASE_URL", VALID_DATABASE_URL)
+
+    assert Settings.from_env().cookie_secure is True
+
+    isolated_environment.setenv("CLOUDCART_COOKIE_SECURE", "false")
+
+    assert Settings.from_env().cookie_secure is False
+
+
 def test_settings_accept_lab_limits_at_their_bounds(isolated_environment: pytest.MonkeyPatch) -> None:
     isolated_environment.setenv("CLOUDCART_DATABASE_URL", VALID_DATABASE_URL)
     isolated_environment.setenv("CLOUDCART_LAB_ENABLED", "true")
