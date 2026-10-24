@@ -1,8 +1,8 @@
 """Concurrent checkouts on independent PostgreSQL connections: no overselling, one order per idempotency key.
 
 The service-level tests hold the first transaction open, wait until PostgreSQL
-reports the second one blocked on a lock, and only then commit the first, so the
-overlap is certain rather than a matter of thread timing. The HTTP tests race
+reports the second one blocked by the first, and only then commit the first, so
+the overlap is certain rather than a matter of thread timing. The HTTP tests race
 whole requests from several API instances, each with its own connection pool.
 """
 
@@ -15,6 +15,7 @@ from uuid import UUID, uuid4
 import pytest
 from httpx2 import Response
 from sqlalchemy import text
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
 from cloudcart.cart.service import set_cart_item
@@ -61,14 +62,15 @@ def backend_pid(session: Session) -> int:
     return session.execute(text("SELECT pg_backend_pid()")).scalar_one()
 
 
-def wait_until_blocked_on_a_lock(database: Database, pid: int) -> None:
+def wait_until_blocked(database: Database, pid: int, by: int) -> None:
+    """Return once backend `pid` waits for a lock that backend `by` holds."""
     deadline = time.monotonic() + LOCK_WAIT_TIMEOUT_SECONDS
     while time.monotonic() < deadline:
-        [(wait_event_type,)] = run_sql(database, "SELECT wait_event_type FROM pg_stat_activity WHERE pid = :pid", pid=pid)
-        if wait_event_type == "Lock":
+        [(blocked,)] = run_sql(database, "SELECT :by = ANY(pg_blocking_pids(:pid))", by=by, pid=pid)
+        if blocked:
             return
         time.sleep(0.02)
-    pytest.fail(f"Backend {pid} never waited for a lock; the checkouts did not overlap.")
+    pytest.fail(f"Backend {pid} never waited for backend {by}; the transactions did not overlap.")
 
 
 def durable_counts(database: Database, product_id: UUID) -> tuple:
@@ -85,12 +87,12 @@ def test_second_checkout_waits_for_the_first_and_cannot_oversell_the_last_unit(
     first, second = two_sessions
     alice, alice_version = guest_with_cart(database, last_unit)
     bob, bob_version = guest_with_cart(database, last_unit)
-    second_pid = backend_pid(second)
+    first_pid, second_pid = backend_pid(first), backend_pid(second)
 
     accepted = checkout(first, alice, alice_version, "approved", "alice-key-0001")  # uncommitted
     with ThreadPoolExecutor(max_workers=1) as pool:
         racing = pool.submit(checkout, second, bob, bob_version, "approved", "bob-key-0001")
-        wait_until_blocked_on_a_lock(database, second_pid)
+        wait_until_blocked(database, second_pid, by=first_pid)
         first.commit()
         with pytest.raises(InsufficientStockError):
             racing.result(timeout=LOCK_WAIT_TIMEOUT_SECONDS)
@@ -106,12 +108,12 @@ def test_simultaneous_retries_with_one_key_create_one_order(
 ) -> None:
     first, second = two_sessions
     guest, version = guest_with_cart(database, last_unit)
-    second_pid = backend_pid(second)
+    first_pid, second_pid = backend_pid(first), backend_pid(second)
 
     original = checkout(first, guest, version, "approved", "same-key-0001")  # uncommitted
     with ThreadPoolExecutor(max_workers=1) as pool:
         retry = pool.submit(checkout, second, guest, version, "approved", "same-key-0001")
-        wait_until_blocked_on_a_lock(database, second_pid)
+        wait_until_blocked(database, second_pid, by=first_pid)
         first.commit()
         replay = retry.result(timeout=LOCK_WAIT_TIMEOUT_SECONDS)
     second.commit()
@@ -119,6 +121,38 @@ def test_simultaneous_retries_with_one_key_create_one_order(
     assert (original.replayed, replay.replayed) == (False, True)
     assert replay.order.id == original.order.id
     assert durable_counts(database, last_unit) == (0, 1, 1)
+
+
+def test_checkout_locks_products_in_id_order_whatever_the_cart_order(
+    database: Database, last_unit: UUID, two_sessions: tuple[Session, Session]
+) -> None:
+    """Every checkout takes product locks in the same order, so two multi-product checkouts cannot deadlock."""
+    holder, buyer = two_sessions
+    low, high = sorted(product_id for (product_id,) in run_sql(database, "SELECT id FROM products LIMIT 2"))
+    with database.session_scope() as session:
+        guest = ensure_guest(session, None)
+        set_cart_item(session, guest.guest_id, high, 1)  # added first, but locked last
+        cart = set_cart_item(session, guest.guest_id, low, 1)
+    holder_pid, buyer_pid = backend_pid(holder), backend_pid(buyer)
+    holder.execute(text("SELECT id FROM products WHERE id = :id FOR UPDATE"), {"id": high})
+    probe = database.session_factory()
+    try:
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            buying = pool.submit(checkout, buyer, guest.guest_id, cart.version, "approved", "ordered-key-0001")
+            try:
+                wait_until_blocked(database, buyer_pid, by=holder_pid)
+                # While it waits for the higher id, the checkout already holds the lower one.
+                with pytest.raises(OperationalError, match="could not obtain lock"):
+                    probe.execute(text("SELECT id FROM products WHERE id = :id FOR NO KEY UPDATE NOWAIT"), {"id": low})
+            finally:
+                holder.rollback()
+            placed = buying.result(timeout=LOCK_WAIT_TIMEOUT_SECONDS)
+        buyer.commit()
+    finally:
+        probe.close()
+
+    assert placed.replayed is False
+    assert {item.product_id for item in placed.order.items} == {low, high}
 
 
 def race(requests: list[Callable[[], Response]]) -> list[Response]:
