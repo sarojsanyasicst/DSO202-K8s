@@ -61,3 +61,10 @@ Append outcomes in chronological order. Use [HANDOFF.md](HANDOFF.md) for the cur
 - Verified on `bf08d29`: 42 unit and 154 integration tests passing, Alembic `check` and round trip, mutation checks for every concurrency and idempotency guard. See [verification](VERIFICATION.md).
 - The review found no Critical issues. Its one Important item, a missing test for the product lock order, was fixed. Five minor items were deferred (see [handoff](HANDOFF.md)).
 - Next: P04 when requested. The branch is local only: not pushed and not merged into `main`.
+
+## 2026-10-24 — P03 merged into main
+
+- At the instructor's request, pushed `claude/p03-start-ce835d` and opened [PR #2](https://github.com/sarojsanyasicst/DSO202-K8s/pull/2) (ready for review). All five branch commits use the noreply identity.
+- The instructor chose a local merge: merge commit `fb50bc9` (parents `30544c8` and `de1391e`, noreply author and committer) was created on top of `origin/main` and pushed to `main` together with this record. The merged tree is identical to the tested branch head `de1391e`.
+- Full suite on `fb50bc9`, run under `caffeinate -i` to prevent the sleep interruption seen earlier: `42 passed` (unit) and `154 passed in 21.20s` (integration); test containers removed afterwards. The repository has no CI checks, so local runs remain the evidence.
+- Next: P04 when requested.

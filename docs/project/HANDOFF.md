@@ -15,7 +15,7 @@ Updated: 2026-10-24 (Asia/Thimphu).
 
 P01, P02, and P03 are done and verified ([P01 evidence](VERIFICATION.md#2026-10-24--p01-runnable-database-foundation), [P02 evidence](VERIFICATION.md#2026-10-24--p02-catalog-persistent-carts-and-access-boundaries), [P03 evidence](VERIFICATION.md#2026-10-24--p03-atomic-checkout-and-durable-order-contract)). P04–P12 are not started; begin each only when the instructor requests it.
 
-Git: `main` holds P01 and P02. P03 (`50aca8d` tests, `e910f54` implementation, `bf08d29` review fix, plus the records commit) is on worktree branch `claude/p03-start-ce835d`, local only: not pushed, not merged. P02 (`c01e916`, `6f9f7c0`, `ae2ec1e`) was merged through [PR #1](https://github.com/sarojsanyasicst/DSO202-K8s/pull/1) as merge commit `97aba5a` on 2026-10-24; branch `claude/p02-catalog-carts-access-875a84` still exists locally and on `origin`. Merges made on github.com use the GitHub account's email settings, not the local noreply configuration: `97aba5a` carries the account's primary email, which the instructor chose to keep. Enable GitHub's "Keep my email addresses private" setting, or merge locally, to keep later merge commits on the noreply identity. Remote `origin` is the public GitHub repository https://github.com/sarojsanyasicst/DSO202-K8s, so never commit credentials, personal data, or machine secrets. Commits use the instructor's GitHub noreply identity.
+Git: `main` holds P01, P02, and P03. P03 (`50aca8d` tests, `e910f54` implementation, `bf08d29` review fix, `a03a3ae` and `de1391e` records) was merged from [PR #2](https://github.com/sarojsanyasicst/DSO202-K8s/pull/2) by local merge commit `fb50bc9` on 2026-10-24, which keeps the noreply identity; branch `claude/p03-start-ce835d` still exists locally and on `origin`. P02 (`c01e916`, `6f9f7c0`, `ae2ec1e`) was merged through [PR #1](https://github.com/sarojsanyasicst/DSO202-K8s/pull/1) as merge commit `97aba5a` on 2026-10-24; branch `claude/p02-catalog-carts-access-875a84` still exists locally and on `origin`. Merges made on github.com use the GitHub account's email settings, not the local noreply configuration: `97aba5a` carries the account's primary email, which the instructor chose to keep. Enable GitHub's "Keep my email addresses private" setting, or merge locally, to keep later merge commits on the noreply identity. Remote `origin` is the public GitHub repository https://github.com/sarojsanyasicst/DSO202-K8s, so never commit credentials, personal data, or machine secrets. Commits use the instructor's GitHub noreply identity.
 
 What exists for later tasks to build on:
 
@@ -28,7 +28,7 @@ What exists for later tasks to build on:
 
 ## Next useful action
 
-When the instructor requests it, begin P04 / Task 4: write the failing delivery and fulfillment tests (`test_delivery.py`, `test_fulfillment.py`), then the outbox publisher, Celery app/tasks, and the worker. Before that, decide whether to push and merge the P03 branch.
+When the instructor requests it, begin P04 / Task 4: write the failing delivery and fulfillment tests (`test_delivery.py`, `test_fulfillment.py`), then the outbox publisher, Celery app/tasks, and the worker.
 
 ## Carried-forward notes
 
