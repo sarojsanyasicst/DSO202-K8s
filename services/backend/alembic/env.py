@@ -10,6 +10,9 @@ from logging.config import fileConfig
 
 from alembic import context
 
+import cloudcart.cart.models  # noqa: F401
+import cloudcart.catalog.models  # noqa: F401
+import cloudcart.identity.models  # noqa: F401
 from cloudcart.config import Settings
 from cloudcart.db import Base, Database
 
@@ -17,8 +20,9 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name, disable_existing_loggers=False)
 
-# Feature modules register their tables on Base.metadata. Import each model
-# module here when it is added so `alembic revision --autogenerate` sees it.
+# Feature modules register their tables on Base.metadata when imported. Import
+# each model module above when it is added so `alembic revision --autogenerate`
+# sees it.
 target_metadata = Base.metadata
 
 

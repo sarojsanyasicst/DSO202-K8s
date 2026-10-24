@@ -29,6 +29,9 @@ class Settings(BaseSettings):
     db_pool_timeout_seconds: int = Field(default=5, ge=1, le=60)
     db_statement_timeout_ms: int = Field(default=5000, ge=100, le=600_000)
 
+    # Session cookies carry the Secure attribute unless a plain-HTTP setup explicitly turns it off.
+    cookie_secure: bool = True
+
     # Bounded CPU workload for the autoscaling lab; disabled unless explicitly enabled.
     lab_enabled: bool = False
     lab_cpu_work_ms: int = Field(default=200, ge=1, le=2000)

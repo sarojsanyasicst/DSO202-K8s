@@ -1,0 +1,1 @@
+"""Products, prices, and stock."""

@@ -77,10 +77,10 @@ Use one Uvicorn process per API Pod and one Celery solo worker process per worke
 
 **Interfaces:** `ensure_guest(session: Session, token: str | None) -> GuestSession`; `set_cart_item(session: Session, guest_id: UUID, product_id: UUID, quantity: int) -> CartView`; `seed_database(session: Session, admin_password: str) -> None`. Session tokens are cryptographically random and only hashed values are persisted. Guest and instructor cookies are HTTP-only, secure in HTTPS mode, and same-site; a session-bound CSRF token is returned separately. Cart responses include an integer `version` used during checkout.
 
-- [ ] Write PostgreSQL integration tests asserting seed reruns do not duplicate products, cart changes survive a new API instance, negative/zero/over-limit quantities are rejected, guest B cannot access guest A's resources, instructor login is required for stock changes, and missing/incorrect CSRF tokens return 403. Include forged Origin and expired session cases.
-- [ ] Run `make test-integration TEST=services/backend/tests/integration/test_shopping.py` and the equivalent command for `test_access.py`; confirm failure due to missing endpoints/models.
-- [ ] Implement catalog/cart/session endpoints and instructor stock updates. Add minimal migrations and idempotent seed command `python -m cloudcart.seed`. Use a maintained password hashing library selected and locked here. Enforce request size and field limits; reject unknown products and empty carts predictably.
-- [ ] Re-run the two files; require all assertions to pass against PostgreSQL, not SQLite. Commit only this task's files and lockfile changes.
+- [x] Write PostgreSQL integration tests asserting seed reruns do not duplicate products, cart changes survive a new API instance, negative/zero/over-limit quantities are rejected, guest B cannot access guest A's resources, instructor login is required for stock changes, and missing/incorrect CSRF tokens return 403. Include forged Origin and expired session cases.
+- [x] Run `make test-integration TEST=services/backend/tests/integration/test_shopping.py` and the equivalent command for `test_access.py`; confirm failure due to missing endpoints/models.
+- [x] Implement catalog/cart/session endpoints and instructor stock updates. Add minimal migrations and idempotent seed command `python -m cloudcart.seed`. Use a maintained password hashing library selected and locked here. Enforce request size and field limits; reject unknown products and empty carts predictably.
+- [x] Re-run the two files; require all assertions to pass against PostgreSQL, not SQLite. Commit only this task's files and lockfile changes.
 
 ## Task 3: Atomic checkout and durable order contract
 
