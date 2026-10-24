@@ -131,3 +131,87 @@ def test_settings_repr_hides_database_url(isolated_environment: pytest.MonkeyPat
     isolated_environment.setenv("CLOUDCART_DATABASE_URL", VALID_DATABASE_URL)
 
     assert TEST_PASSWORD not in repr(Settings.from_env())
+
+
+VALID_BROKER_URL = f"amqp://cloudcart:{TEST_PASSWORD}@127.0.0.1:5672//"
+
+
+def test_settings_default_to_publishing_with_bounded_job_timings(isolated_environment: pytest.MonkeyPatch) -> None:
+    isolated_environment.setenv("CLOUDCART_DATABASE_URL", VALID_DATABASE_URL)
+
+    settings = Settings.from_env()
+
+    assert settings.broker_url is None
+    assert settings.publisher_enabled is True
+    assert settings.broker_timeout_seconds == 5
+    assert settings.publisher_interval_ms == 1000
+    assert settings.fulfillment_delay_ms == 1000
+    assert settings.fulfillment_retry_backoff_ms == 1000
+
+
+@pytest.mark.parametrize(
+    ("variable", "value"),
+    [
+        ("CLOUDCART_BROKER_TIMEOUT_SECONDS", "0"),
+        ("CLOUDCART_BROKER_TIMEOUT_SECONDS", "61"),
+        ("CLOUDCART_PUBLISHER_INTERVAL_MS", "99"),
+        ("CLOUDCART_PUBLISHER_INTERVAL_MS", "60001"),
+        ("CLOUDCART_FULFILLMENT_DELAY_MS", "-1"),
+        ("CLOUDCART_FULFILLMENT_DELAY_MS", "5001"),
+        ("CLOUDCART_FULFILLMENT_RETRY_BACKOFF_MS", "9"),
+        ("CLOUDCART_FULFILLMENT_RETRY_BACKOFF_MS", "10001"),
+    ],
+)
+def test_settings_reject_unbounded_job_timings(
+    isolated_environment: pytest.MonkeyPatch, variable: str, value: str
+) -> None:
+    isolated_environment.setenv("CLOUDCART_DATABASE_URL", VALID_DATABASE_URL)
+    isolated_environment.setenv(variable, value)
+
+    with pytest.raises(ConfigurationError, match=variable):
+        Settings.from_env()
+
+
+def test_settings_accept_job_timings_at_their_bounds(isolated_environment: pytest.MonkeyPatch) -> None:
+    isolated_environment.setenv("CLOUDCART_DATABASE_URL", VALID_DATABASE_URL)
+    isolated_environment.setenv("CLOUDCART_BROKER_TIMEOUT_SECONDS", "60")
+    isolated_environment.setenv("CLOUDCART_PUBLISHER_INTERVAL_MS", "100")
+    isolated_environment.setenv("CLOUDCART_FULFILLMENT_DELAY_MS", "5000")
+    isolated_environment.setenv("CLOUDCART_FULFILLMENT_RETRY_BACKOFF_MS", "10")
+
+    settings = Settings.from_env()
+
+    assert (settings.broker_timeout_seconds, settings.publisher_interval_ms) == (60, 100)
+    assert (settings.fulfillment_delay_ms, settings.fulfillment_retry_backoff_ms) == (5000, 10)
+
+
+@pytest.mark.parametrize("broker_url", [VALID_BROKER_URL, f"amqps://cloudcart:{TEST_PASSWORD}@broker.internal:5671/shop"])
+def test_settings_accept_amqp_broker_urls(isolated_environment: pytest.MonkeyPatch, broker_url: str) -> None:
+    isolated_environment.setenv("CLOUDCART_DATABASE_URL", VALID_DATABASE_URL)
+    isolated_environment.setenv("CLOUDCART_BROKER_URL", broker_url)
+
+    settings = Settings.from_env()
+
+    assert settings.broker_url is not None and settings.broker_url.get_secret_value() == broker_url
+    assert TEST_PASSWORD not in repr(settings)
+
+
+@pytest.mark.parametrize(
+    "broker_url",
+    [
+        f"redis://cloudcart:{TEST_PASSWORD}@127.0.0.1:6379/0",
+        f"memory://cloudcart:{TEST_PASSWORD}@localhost/",
+        f"amqp://cloudcart:{TEST_PASSWORD}@",
+        f"not a url {TEST_PASSWORD}",
+    ],
+)
+def test_settings_reject_non_amqp_broker_urls_without_echoing_them(
+    isolated_environment: pytest.MonkeyPatch, broker_url: str
+) -> None:
+    isolated_environment.setenv("CLOUDCART_DATABASE_URL", VALID_DATABASE_URL)
+    isolated_environment.setenv("CLOUDCART_BROKER_URL", broker_url)
+
+    with pytest.raises(ConfigurationError, match="CLOUDCART_BROKER_URL") as raised:
+        Settings.from_env()
+
+    assert TEST_PASSWORD not in str(raised.value)

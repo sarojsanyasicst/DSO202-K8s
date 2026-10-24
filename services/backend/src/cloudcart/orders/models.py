@@ -9,7 +9,18 @@ from datetime import datetime
 from typing import Literal, get_args
 from uuid import UUID, uuid4
 
-from sqlalchemy import BigInteger, CheckConstraint, DateTime, ForeignKey, Integer, String, UniqueConstraint, func
+from sqlalchemy import (
+    BigInteger,
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    UniqueConstraint,
+    func,
+    text,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from cloudcart.catalog.models import CURRENCY, NAME_MAX_LENGTH, Product
@@ -20,6 +31,7 @@ OrderStatus = Literal["accepted", "processing", "fulfilled", "failed"]
 ORDER_STATUSES: tuple[str, ...] = get_args(OrderStatus)
 IDEMPOTENCY_KEY_MAX_LENGTH = 128
 FINGERPRINT_LENGTH = 64  # hex SHA-256
+FAILURE_REASON_MAX_LENGTH = 200
 
 
 class Order(Base):
@@ -30,6 +42,9 @@ class Order(Base):
         CheckConstraint(f"status IN ({', '.join(repr(status) for status in ORDER_STATUSES)})", name="status_known"),
         CheckConstraint("total_cents > 0", name="total_cents_positive"),
         CheckConstraint(f"currency = '{CURRENCY}'", name="currency_usd"),
+        CheckConstraint("fulfillment_attempts >= 0", name="fulfillment_attempts_not_negative"),
+        # A failed order always says why; no other order has a failure reason.
+        CheckConstraint("(status = 'failed') = (failure_reason IS NOT NULL)", name="failure_reason_when_failed"),
     )
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
@@ -42,6 +57,11 @@ class Order(Base):
     total_cents: Mapped[int] = mapped_column(BigInteger)
     currency: Mapped[str] = mapped_column(String(3), default=CURRENCY)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    # Fulfillment attempts the worker has started, counted durably so redeliveries and
+    # crash loops cannot retry an order forever (see cloudcart.jobs.tasks).
+    fulfillment_attempts: Mapped[int] = mapped_column(Integer, default=0, server_default=text("0"))
+    # Why fulfillment gave up; internal, never shown to guests.
+    failure_reason: Mapped[str | None] = mapped_column(String(FAILURE_REASON_MAX_LENGTH))
 
     items: Mapped[list["OrderItem"]] = relationship(lazy="selectin")
     outbox_event: Mapped["OutboxEvent | None"] = relationship(lazy="selectin")
@@ -67,20 +87,27 @@ class OrderItem(Base):
 class OutboxEvent(Base):
     """Hands one accepted order to the fulfillment worker.
 
-    Checkout writes it in the same transaction as the order. The publisher (Task 4)
-    sets `published_at` only after the broker confirms the message.
+    Checkout writes it in the same transaction as the order. The publisher
+    (cloudcart.jobs.publisher) claims it, sends it, and sets `published_at` only
+    after the broker confirms a routable message.
     """
 
     __tablename__ = "outbox_events"
+    # The publisher's claim query reads only unpublished events, oldest first.
+    __table_args__ = (
+        Index("ix_outbox_events_unpublished", "created_at", "id", postgresql_where=text("published_at IS NULL")),
+    )
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     order_id: Mapped[UUID] = mapped_column(ForeignKey(Order.id), unique=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # Lease of the publisher sending the event; another publisher may take it over once it has passed.
+    claimed_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class Receipt(Base):
-    """Issued by the fulfillment worker (Task 4); at most one per order. Lines and totals come from the order."""
+    """Issued by the fulfillment worker; at most one per order. Lines and totals come from the order."""
 
     __tablename__ = "receipts"
 

@@ -51,3 +51,12 @@ class ReceiptView(BaseModel):
     items: list[OrderItemView]
     total_cents: int
     currency: Literal["USD"]
+
+
+class FulfillmentResult(BaseModel):
+    """Outcome of one fulfillment step on an order, as the worker records it in PostgreSQL."""
+
+    order_id: UUID
+    status: OrderStatus
+    receipt_id: UUID | None
+    already_applied: bool = Field(description="True when an earlier delivery had already finished the order.")

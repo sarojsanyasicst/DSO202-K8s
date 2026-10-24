@@ -68,3 +68,13 @@ Append outcomes in chronological order. Use [HANDOFF.md](HANDOFF.md) for the cur
 - The instructor chose a local merge: merge commit `fb50bc9` (parents `30544c8` and `de1391e`, noreply author and committer) was created on top of `origin/main` and pushed to `main` together with this record. The merged tree is identical to the tested branch head `de1391e`.
 - Full suite on `fb50bc9`, run under `caffeinate -i` to prevent the sleep interruption seen earlier: `42 passed` (unit) and `154 passed in 21.20s` (integration); test containers removed afterwards. The repository has no CI checks, so local runs remain the evidence.
 - Next: P04 when requested.
+
+## 2026-10-24 — P04 reliable publisher and fulfillment worker
+
+- The instructor requested P04. Work ran inline (superpowers executing-plans) in worktree branch `claude/p04-start-3c8765`, test-first, with one fresh whole-branch review.
+- Settled the publication and fulfillment design (D027–D031): an outbox publisher thread per API process with skip-locked claims and a 60 s lease, confirmed persistent mandatory publishing, bounded broker calls and exponential backoff; a solo-pool Celery worker with late acknowledgement and prefetch 1; durable attempt counting (at most four), backoff-then-requeue retries, stock returned once on failure; database errors outside an attempt requeue without using attempts.
+- Delivered the `cloudcart.jobs` package, migration `674c483b8f18`, new settings, and 32 integration plus 19 unit tests with a TCP fault proxy and a worker harness (`a5668ca`, `280476b`, `5762706`, `049b220`).
+- Found and fixed during the work: RabbitMQ 4.3 refuses Celery's remote-control queue (remote control disabled); an idle worker needed up to 10 s to honour SIGTERM (one-second wake-up bootstep).
+- Verified on `049b220`: 61 unit and 186 integration tests passing, Alembic `check` and round trip, 15 mutation checks. See [verification](VERIFICATION.md).
+- The review found no Critical issues; its one Important item (a non-connection database error dropped the task) was fixed with a failing-first test. Ten minors were deferred or ruled on (see [handoff](HANDOFF.md)).
+- Next: P05 when requested. The branch is local only: not pushed and not merged into `main`.

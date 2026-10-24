@@ -168,16 +168,18 @@ planned_python_libraries:
     source: https://pypi.org/project/celery/5.6.3/
     compatibility: >-
       Latest stable (2026-03-26); 5.7.0rc1 (2026-10-18) is a pre-release. 5.6.3 classifiers
-      include Python 3.13, the pinned runtime; Task 4 still proves the worker against the real
-      broker.
-    checked: "2026-10-23"
+      include Python 3.13, the pinned runtime. Locked in uv.lock in P04 and proven against
+      RabbitMQ 4.3.7 by the Task 4 integration tests (solo-pool worker subprocesses). Remote
+      control must stay disabled: RabbitMQ 4.3 refuses its transient non-exclusive reply queue
+      (`transient_nonexcl_queues` deprecated feature).
+    checked: "2026-10-24"
     status: verified
   kombu:
     version: "5.6.2"
     arm64: {available: true, verified_by: "PyPI lists only kombu-5.6.2-py3-none-any.whl and an sdist (pure Python)"}
     source: https://pypi.org/project/kombu/5.6.2/
-    compatibility: Latest stable (2025-12-29), paired with Celery 5.6.x; classifiers include Python 3.13. billiard 4.3.1 (pure Python) declares 3.10-3.14.
-    checked: "2026-10-23"
+    compatibility: Latest stable (2025-12-29), paired with Celery 5.6.x; classifiers include Python 3.13. billiard 4.3.1 (pure Python) declares 3.10-3.14. Locked in uv.lock in P04 with amqp 5.4.1 and vine 5.1.0; publisher confirms and mandatory publishing proven against RabbitMQ 4.3.7.
+    checked: "2026-10-24"
     status: verified
 
 data_services:

@@ -10,7 +10,6 @@ from uuid import UUID, uuid4
 import pytest
 from fastapi.testclient import TestClient
 from httpx2 import Response
-from pydantic import SecretStr
 
 from cloudcart.config import Settings
 from cloudcart.db import Database
@@ -192,9 +191,7 @@ def test_guest_session_cookie_is_http_only_secure_and_strict(open_client: OpenCl
 def test_cookies_omit_secure_only_when_https_is_disabled(
     open_client: OpenClient, integration_settings: Settings, product_id: UUID
 ) -> None:
-    plain_http = Settings(
-        database_url=SecretStr(integration_settings.database_url.get_secret_value()), cookie_secure=False
-    )
+    plain_http = integration_settings.model_copy(update={"cookie_secure": False})
     client = open_client(plain_http)
 
     guest_cookie = cookie_attributes(client.get("/api/v1/session"), GUEST_COOKIE)
