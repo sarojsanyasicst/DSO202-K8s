@@ -2,7 +2,9 @@
 
 from collections.abc import Iterator
 from contextlib import contextmanager
+from typing import Annotated
 
+from fastapi import Depends, Request
 from sqlalchemy import MetaData, create_engine
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
@@ -74,3 +76,15 @@ class Database:
     def dispose(self) -> None:
         """Close pooled connections, e.g. on application shutdown."""
         self.engine.dispose()
+
+
+def request_session(request: Request) -> Iterator[Session]:
+    """FastAPI dependency: one transaction per request, using the application's Database."""
+    database: Database = request.app.state.database
+    with database.session_scope() as session:
+        yield session
+
+
+# "function" scope commits (or rolls back) when the route returns or raises, before the
+# response is sent, so a client never sees success for a change that failed to commit.
+DbSession = Annotated[Session, Depends(request_session, scope="function")]
