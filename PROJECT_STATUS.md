@@ -4,14 +4,14 @@ Last updated: 2026-10-24 (Asia/Thimphu).
 
 ## Current position
 
-- **Phase:** P03 atomic checkout and durable order contract done and merged into `main`; P04 (reliable publisher and fulfillment worker) next, when requested.
+- **Phase:** P04 reliable publisher and fulfillment worker done and verified on local branch `claude/p04-start-3c8765` (not yet pushed or merged); P05 (storefront and instructor view) next, when requested.
 - **Architecture:** approved by the instructor.
-- **Detailed implementation plan:** Tasks 1–3 complete; Tasks 4–12 not started.
-- **Application:** settings, database sessions, app factory, the first Alembic revision, product catalog, persistent guest carts, guest/instructor sessions with CSRF and same-origin checks, instructor stock updates, the idempotent seed command, atomic checkout with idempotent retries, guest order history/status/receipt reads, and one outbox event per order, with passing unit and PostgreSQL integration tests. Nothing publishes outbox events or fulfills orders yet (P04); no frontend yet.
+- **Detailed implementation plan:** Tasks 1–4 complete; Tasks 5–12 not started.
+- **Application:** settings, database sessions, app factory, the first Alembic revision, product catalog, persistent guest carts, guest/instructor sessions with CSRF and same-origin checks, instructor stock updates, the idempotent seed command, atomic checkout with idempotent retries, guest order history/status/receipt reads, one outbox event per order, an outbox publisher in each API process (confirmed, persistent RabbitMQ publication with bounded calls and backoff), and the Celery fulfillment worker (`python -m cloudcart.jobs.worker`: duplicate-safe receipts, bounded retries, stock returned once on failure), with passing unit and PostgreSQL/RabbitMQ integration tests. No frontend yet (P05).
 - **Infrastructure:** none created by this project. Disposable test PostgreSQL/RabbitMQ run only through `make test-deps-up` and are removed by `make test-deps-down`. Versions are selected in [versions.yaml](deploy/platform/versions.yaml), not yet proven on a cluster.
-- **Version control:** `main` holds P01, P02, and P03. P03 was merged from [PR #2](https://github.com/sarojsanyasicst/DSO202-K8s/pull/2) by a local merge commit `fb50bc9` (noreply identity) pushed to `origin/main` on 2026-10-24. P02 was merged through [PR #1](https://github.com/sarojsanyasicst/DSO202-K8s/pull/1) as merge commit `97aba5a` on 2026-10-24. Remote `origin` is the public GitHub repository [sarojsanyasicst/DSO202-K8s](https://github.com/sarojsanyasicst/DSO202-K8s); everything pushed there is public.
-- **Next milestone:** P04 — reliable publisher and fulfillment worker.
-- **Current blockers:** none for P04. Known risks for later milestones: Docker Desktop VM has ~7.75 GiB against the 12–14 GiB planning estimate (P07/P09/P11); `promtool` not installed (P11).
+- **Version control:** `main` holds P01, P02, and P03; P04 is on local branch `claude/p04-start-3c8765`, awaiting the instructor's push/merge decision. P03 was merged from [PR #2](https://github.com/sarojsanyasicst/DSO202-K8s/pull/2) by a local merge commit `fb50bc9` (noreply identity) pushed to `origin/main` on 2026-10-24. P02 was merged through [PR #1](https://github.com/sarojsanyasicst/DSO202-K8s/pull/1) as merge commit `97aba5a` on 2026-10-24. Remote `origin` is the public GitHub repository [sarojsanyasicst/DSO202-K8s](https://github.com/sarojsanyasicst/DSO202-K8s); everything pushed there is public.
+- **Next milestone:** P05 — storefront and instructor view.
+- **Current blockers:** none for P05. Known risks for later milestones: Docker Desktop VM has ~7.75 GiB against the 12–14 GiB planning estimate (P07/P09/P11); `promtool` not installed (P11).
 
 ## Milestone board
 
@@ -23,7 +23,7 @@ This is the single source of truth for milestone status. Detailed step checkboxe
 | P01 | Runnable database foundation | Done | [Verification 2026-10-24](docs/project/VERIFICATION.md#2026-10-24--p01-runnable-database-foundation) |
 | P02 | Catalog, persistent carts, access boundaries | Done | [Verification 2026-10-24](docs/project/VERIFICATION.md#2026-10-24--p02-catalog-persistent-carts-and-access-boundaries) |
 | P03 | Atomic checkout and durable order contract | Done | [Verification 2026-10-24](docs/project/VERIFICATION.md#2026-10-24--p03-atomic-checkout-and-durable-order-contract) |
-| P04 | Reliable publisher and fulfillment worker | Not started | — |
+| P04 | Reliable publisher and fulfillment worker | Done | [Verification 2026-10-24](docs/project/VERIFICATION.md#2026-10-24--p04-reliable-publisher-and-fulfillment-worker) |
 | P05 | Storefront and instructor view | Not started | — |
 | P06 | Versioned images and software-team handoff | Not started | — |
 | P07 | kind infrastructure and plain-manifest deployment | Not started | — |
