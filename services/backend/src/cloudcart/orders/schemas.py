@@ -53,6 +53,32 @@ class ReceiptView(BaseModel):
     currency: Literal["USD"]
 
 
+class AdminOrderView(BaseModel):
+    """One order in the instructor overview. It never names the guest or carries the failure reason."""
+
+    id: UUID
+    status: OrderStatus
+    publication_pending: bool = Field(description="True until the order has been handed to the fulfillment queue.")
+    fulfillment_attempts: int = Field(description="Fulfillment attempts the worker has started (at most four).")
+    item_count: int = Field(description="Units in the order.")
+    total_cents: int
+    created_at: UtcDatetime
+    receipt_available: bool
+
+
+class OrderStatusCounts(BaseModel):
+    accepted: int
+    processing: int
+    fulfilled: int
+    failed: int
+
+
+class AdminOrdersView(BaseModel):
+    status_counts: OrderStatusCounts = Field(description="All orders by status.")
+    publication_pending: int = Field(description="Accepted orders not yet handed to the fulfillment queue.")
+    orders: list[AdminOrderView] = Field(description="The 50 most recent orders of every guest, newest first.")
+
+
 class FulfillmentResult(BaseModel):
     """Outcome of one fulfillment step on an order, as the worker records it in PostgreSQL."""
 

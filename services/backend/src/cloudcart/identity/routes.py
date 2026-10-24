@@ -5,11 +5,13 @@ State-changing requests pass three checks, in this order:
    Sec-Fetch-Site must not be cross-site. TLS ends at the gateway, so schemes are not compared;
 2. a live session of the right kind (401);
 3. the session's CSRF token in the X-CSRF-Token header (403).
-Instructor login runs only the same-origin check: it has no session yet.
+Instructor login runs only the same-origin check: it has no session yet. The two reads that
+return a CSRF token (GET /session and GET /admin/session) run the same-origin check too, so a
+cross-site navigation can neither start a guest session nor replace the caller's cookie.
 """
 
 from datetime import timedelta
-from typing import Annotated
+from typing import Annotated, cast
 from urllib.parse import urlsplit
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response, status
@@ -22,6 +24,7 @@ from cloudcart.identity.schemas import InstructorCredentials, SessionView
 from cloudcart.identity.security import (
     GUEST_SESSION_LIFETIME,
     INSTRUCTOR_SESSION_LIFETIME,
+    csrf_token_for,
     csrf_token_matches,
     ensure_guest,
     find_live_guest,
@@ -69,7 +72,7 @@ def require_same_origin(request: Request) -> None:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Cross-site request refused.")
 
 
-@router.get("/session")
+@router.get("/session", dependencies=[Depends(require_same_origin)])
 def start_guest_session(
     request: Request, response: Response, session: DbSession, token: GuestToken
 ) -> SessionView:
@@ -114,16 +117,46 @@ def guest_for_change(
     return guest
 
 
+def current_instructor(session: DbSession, token: InstructorToken) -> InstructorSession:
+    """Dependency for instructor reads: the caller's live instructor session, or 401."""
+    instructor_session = find_live_instructor_session(session, token)
+    if instructor_session is None:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "A live instructor session is required.")
+    return instructor_session
+
+
 def instructor_for_change(
     request: Request, session: DbSession, token: InstructorToken, csrf_token: CsrfToken = None
 ) -> InstructorSession:
     """Dependency for instructor changes: same origin, then a live instructor session, then its CSRF token."""
     require_same_origin(request)
-    instructor_session = find_live_instructor_session(session, token)
-    if instructor_session is None:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "A live instructor session is required.")
+    instructor_session = current_instructor(session, token)
     _require_csrf(token, csrf_token)
     return instructor_session
+
+
+@router.get("/admin/session", dependencies=[Depends(require_same_origin)])
+def resume_instructor_session(response: Response, session: DbSession, token: InstructorToken) -> SessionView:
+    """Return the caller's live instructor session, so the instructor view survives a page reload. 401 otherwise."""
+    instructor_session = current_instructor(session, token)
+    response.headers["Cache-Control"] = "no-store"
+    # current_instructor found a live session, so the cookie is present.
+    return SessionView(csrf_token=csrf_token_for(cast(str, token)), expires_at=instructor_session.expires_at)
+
+
+@router.post("/admin/logout", status_code=status.HTTP_204_NO_CONTENT)
+def log_out(
+    request: Request,
+    response: Response,
+    session: DbSession,
+    instructor_session: Annotated[InstructorSession, Depends(instructor_for_change)],
+) -> None:
+    """End the caller's instructor session and clear its cookie. Other instructor sessions stay live."""
+    session.delete(instructor_session)
+    settings: Settings = request.app.state.settings
+    response.delete_cookie(
+        INSTRUCTOR_COOKIE_NAME, path="/", secure=settings.cookie_secure, httponly=True, samesite="strict"
+    )
 
 
 def _names_host(origin: str, host: str | None) -> bool:

@@ -1,4 +1,7 @@
-"""Checkout and the caller's own orders. An order id only works for the guest session that placed the order."""
+"""Checkout, the caller's own orders, and the instructor's order overview.
+
+A guest's order id only works for the guest session that placed the order.
+"""
 
 from typing import Annotated
 from uuid import UUID
@@ -7,8 +10,8 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response
 
 from cloudcart.db import DbSession
 from cloudcart.identity.models import Guest
-from cloudcart.identity.routes import current_guest, guest_for_change
-from cloudcart.orders.schemas import IDEMPOTENCY_KEY_PATTERN, CheckoutRequest, OrderView, ReceiptView
+from cloudcart.identity.routes import current_guest, current_instructor, guest_for_change
+from cloudcart.orders.schemas import IDEMPOTENCY_KEY_PATTERN, AdminOrdersView, CheckoutRequest, OrderView, ReceiptView
 from cloudcart.orders.service import (
     CheckoutConflictError,
     OrderNotFoundError,
@@ -18,6 +21,7 @@ from cloudcart.orders.service import (
     get_order,
     get_receipt,
     list_orders,
+    order_overview,
 )
 
 IdempotencyKey = Annotated[
@@ -30,6 +34,7 @@ IdempotencyKey = Annotated[
 ]
 
 router = APIRouter(prefix="/orders", tags=["orders"])
+admin_router = APIRouter(prefix="/admin/orders", tags=["admin"])
 
 
 @router.post(
@@ -89,3 +94,9 @@ def read_receipt(order_id: UUID, session: DbSession, guest: Annotated[Guest, Dep
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Order not found.") from None
     except ReceiptNotAvailableError:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "The receipt is not available yet.") from None
+
+
+@admin_router.get("", dependencies=[Depends(current_instructor)])
+def read_order_overview(session: DbSession) -> AdminOrdersView:
+    """Every guest's 50 most recent orders and counts over all orders (instructor only)."""
+    return order_overview(session)

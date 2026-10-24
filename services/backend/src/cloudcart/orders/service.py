@@ -19,14 +19,22 @@ import json
 from dataclasses import dataclass
 from uuid import UUID
 
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
 from cloudcart.cart.models import CartItem
 from cloudcart.cart.service import clear_cart, lock_guest_cart
 from cloudcart.catalog.models import Product
-from cloudcart.orders.models import Order, OrderItem, OutboxEvent
-from cloudcart.orders.schemas import OrderItemView, OrderView, PaymentOutcome, ReceiptView
+from cloudcart.orders.models import ORDER_STATUSES, Order, OrderItem, OutboxEvent
+from cloudcart.orders.schemas import (
+    AdminOrdersView,
+    AdminOrderView,
+    OrderItemView,
+    OrderStatusCounts,
+    OrderView,
+    PaymentOutcome,
+    ReceiptView,
+)
 
 MAX_LISTED_ORDERS = 50
 
@@ -159,6 +167,34 @@ def get_receipt(session: Session, guest_id: UUID, order_id: UUID) -> ReceiptView
     )
 
 
+def order_overview(session: Session) -> AdminOrdersView:
+    """Every guest's most recent orders for the instructor, with counts over all orders."""
+    counts = dict.fromkeys(ORDER_STATUSES, 0)
+    by_status = session.execute(select(Order.status, func.count()).group_by(Order.status))
+    counts.update({status: count for status, count in by_status})
+    pending = session.scalar(select(func.count()).select_from(OutboxEvent).where(OutboxEvent.published_at.is_(None)))
+    orders = session.scalars(
+        select(Order).order_by(Order.created_at.desc(), Order.id.desc()).limit(MAX_LISTED_ORDERS)
+    )
+    return AdminOrdersView(
+        status_counts=OrderStatusCounts(**counts),
+        publication_pending=pending or 0,
+        orders=[
+            AdminOrderView(
+                id=order.id,
+                status=order.status,
+                publication_pending=_publication_pending(order),
+                fulfillment_attempts=order.fulfillment_attempts,
+                item_count=sum(item.quantity for item in order.items),
+                total_cents=order.total_cents,
+                created_at=order.created_at,
+                receipt_available=order.receipt is not None,
+            )
+            for order in orders
+        ],
+    )
+
+
 def _charge_stock(session: Session, product: Product, quantity: int) -> None:
     """Take `quantity` units; the WHERE guard keeps stock from going negative even without the row lock."""
     charged = session.execute(
@@ -182,12 +218,16 @@ def _order_view(order: Order) -> OrderView:
     return OrderView(
         id=order.id,
         status=order.status,
-        publication_pending=order.outbox_event is not None and order.outbox_event.published_at is None,
+        publication_pending=_publication_pending(order),
         total_cents=order.total_cents,
         created_at=order.created_at,
         receipt_available=order.receipt is not None,
         items=_item_views(order),
     )
+
+
+def _publication_pending(order: Order) -> bool:
+    return order.outbox_event is not None and order.outbox_event.published_at is None
 
 
 def _item_views(order: Order) -> list[OrderItemView]:
