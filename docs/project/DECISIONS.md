@@ -21,6 +21,7 @@ Accepted decisions come from the [approved design](../superpowers/specs/2026-10-
 | D015 | 2026-10-23 | Accepted (implementation) | Database access through a `Database` object (`session_factory`, `session_scope()`), created in the FastAPI lifespan; no engine at import time | Avoids global state; the session factory serves the Task 4 publisher signature. The plan's `session_scope()` is a method rather than a module function |
 | D016 | 2026-10-23 | Accepted (implementation) | Integration tests use one freshly created PostgreSQL database per test session, migrated with Alembic and dropped afterwards, with autouse per-test truncation; destructive setup refuses non-loopback or query-redirected hosts | Later concurrency (two connections) and worker-subprocess tests cannot share one wrapping transaction |
 | D017 | 2026-10-23 | Accepted (implementation) | Lab workload settings are off by default and bounded: CPU work 1–2000 ms (default 200), concurrency 1–8 (default 2) | Spec requires a bounded, disabled-by-default lab mode; the server cap stays well below the traffic runner's 20-client limit on a two-worker laptop cluster. Retune with Task 6/9 measurements |
+| D018 | 2026-10-24 | Adopted by instructor | Public GitHub repository `sarojsanyasicst/DSO202-K8s` as remote `origin`; `main` is the integration branch; commits use the GitHub noreply identity | Shareable source for students and a candidate reachable Git source for Argo CD (P10). The noreply identity keeps the instructor's email out of public history |
 
 ## Choices deferred to implementation
 

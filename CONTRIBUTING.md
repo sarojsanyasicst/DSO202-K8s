@@ -21,7 +21,7 @@ Use ISO dates with the instructor's Asia/Thimphu timezone. Record exact times on
 
 ## Source and generated files
 
-- Commit source, manifests, charts, dashboards, teaching documents, and sanitized release metadata once version control is initialized.
+- Commit source, manifests, charts, dashboards, teaching documents, and sanitized release metadata. The `origin` remote is a public GitHub repository: anything pushed is public, so check for credentials and personal data before pushing.
 - Keep local environments, credentials, certificates/private keys, image archives, database backups, and generated evidence out of source control.
 - Store local settings under `.local/`; store generated outputs under `artifacts/` in the documented subfolders.
 - Use explicit target contexts for cluster-changing helpers; never silently delete a cluster or PVC.

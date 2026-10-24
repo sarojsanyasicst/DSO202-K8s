@@ -14,7 +14,7 @@ Updated: 2026-10-24 (Asia/Thimphu).
 
 P01 is done and verified ([evidence](VERIFICATION.md#2026-10-24--p01-runnable-database-foundation)). The instructor limited the 2026-10-23 session to P01; P02–P12 are not started and not yet authorized.
 
-Git: local repository, no remote. `main` holds only the baseline docs commit `ee657bc`. P01 lives on branch `p01-database-foundation` and is not yet merged into `main`. Confirm with the instructor how to integrate it before starting P02.
+Git: `main` holds the baseline docs commit `07181a2` and all of P01; the instructor renamed the P01 branch to `main` on 2026-10-24. Remote `origin` is the public GitHub repository https://github.com/sarojsanyasicst/DSO202-K8s, so never commit credentials, personal data, or machine secrets. Commits use the instructor's GitHub noreply identity, configured locally for this repository.
 
 What exists for later tasks to build on:
 
@@ -52,7 +52,7 @@ When the instructor requests it, begin P02 / Task 2: write the failing PostgreSQ
 
 - Apple M4, 24 GB RAM; kind target is 1 control plane + 2 workers. An unrelated kind cluster `dso202` exists and owns 127.0.0.1:80/443. Never modify or delete it. The current context is `kind-dso202`, so always name `kind-cloudcart` explicitly.
 - Students receive prebuilt images; CI/image-building instruction stays outside classroom scope.
-- Argo CD needs a reachable Git source later; no URL has been supplied.
+- Argo CD needs a reachable Git source in P10. The public `origin` repository is a candidate; the instructor confirms the URL, revision, and values path then.
 - Baseline exclusions are unchanged: no real payment/shipping, object storage, Redis, extra business microservices, centralized logs/tracing, or stateful HA.
 
 ## Verification and continuation hygiene

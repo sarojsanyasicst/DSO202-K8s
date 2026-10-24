@@ -24,9 +24,15 @@ Append outcomes in chronological order. Use [HANDOFF.md](HANDOFF.md) for the cur
 
 - The instructor requested implementation and limited this session to P01.
 - Checked host tools, Docker allocation, kube contexts, and existing clusters read-only; the unrelated `dso202` cluster and other containers were left untouched.
-- Initialized the local Git repository (`main`, baseline docs commit `ee657bc`) and implemented P01 on branch `p01-database-foundation` with subagent implementation and reviews.
+- Initialized the local Git repository (`main`, baseline docs commit `07181a2`) and implemented P01 on branch `p01-database-foundation` with subagent implementation and reviews.
 - Delivered the locked Python 3.13 backend project, settings, database lifecycle, app factory, Alembic scaffolding, disposable Compose PostgreSQL/RabbitMQ, Make targets, version matrix, and instructor prerequisites.
 - Re-pinned Python from 3.15 to 3.13 because Celery/Kombu do not declare newer versions; removed the unused Uvicorn dependency until Task 6; fixed final-review findings (secret leak through exception context, connection keepalive bounds, test isolation and loopback guard).
-- Verified on `aab9757`: 37 unit and 7 integration tests passing, dependencies healthy and removed cleanly. See [verification](VERIFICATION.md).
+- Verified on `bfe4fee`: 37 unit and 7 integration tests passing, dependencies healthy and removed cleanly. See [verification](VERIFICATION.md).
 - Side effect on the host: uv downloaded CPython 3.15.0rc2 and 3.13.15 into its interpreter store and added a `~/.local/bin/python3.13` link.
 - Next: P02 when requested. The branch is not yet merged into `main`.
+
+## 2026-10-24 — Remote repository
+
+- The instructor added the public GitHub remote `origin` (https://github.com/sarojsanyasicst/DSO202-K8s) and renamed the P01 branch to `main`, so P01 is integrated without a separate merge.
+- Before the first push, the eight local commits were rewritten from the university email to the GitHub noreply identity, with dates and file contents unchanged. Commit hashes cited in project records were updated to the new values (for example, P01 now spans `1d1783a`..`bfe4fee`).
+- Checked the tracked files for credentials and personal data before publishing: none found besides the labelled disposable test credentials.

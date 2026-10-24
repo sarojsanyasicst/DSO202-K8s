@@ -9,7 +9,7 @@ Last updated: 2026-10-24 (Asia/Thimphu).
 - **Detailed implementation plan:** Task 1 complete; Tasks 2–12 not started.
 - **Application:** settings, database sessions, app factory, and Alembic scaffolding exist with passing unit and PostgreSQL integration tests. No product, cart, checkout, worker, or frontend features yet.
 - **Infrastructure:** none created by this project. Disposable test PostgreSQL/RabbitMQ run only through `make test-deps-up` and are removed by `make test-deps-down`. Versions are selected in [versions.yaml](deploy/platform/versions.yaml), not yet proven on a cluster.
-- **Version control:** local Git repository on `main`; P01 work on branch `p01-database-foundation`. No remote.
+- **Version control:** `main` holds P01. Remote `origin` is the public GitHub repository [sarojsanyasicst/DSO202-K8s](https://github.com/sarojsanyasicst/DSO202-K8s); everything pushed there is public.
 - **Next milestone:** P02 — catalog, persistent carts, access boundaries.
 - **Current blockers:** none for P02. Known risks for later milestones: Docker Desktop VM has ~7.75 GiB against the 12–14 GiB planning estimate (P07/P09/P11); `promtool` not installed (P11).
 
@@ -40,7 +40,7 @@ This is the single source of truth for milestone status. Detailed step checkboxe
 - Close the two `partially_verified` compatibility edges in versions.yaml (Gateway API minimum Kubernetes version; kube-prometheus-stack on Kubernetes 1.36) before installing them in P07/P11.
 - Instructor to ratify the version choices recorded in [DECISIONS.md](docs/project/DECISIONS.md) (D014).
 - Measure Docker allocation and real cluster capacity in P07/P09/P11.
-- Configure a Git source reachable by Argo CD in P10; no remote destination has been chosen.
+- Confirm in P10 whether Argo CD uses the public `origin` repository as its Git source, with which revision and values path; it is a candidate, not yet configured or tested.
 - Add AMD64 image variants if the student distribution needs them in P06/P12.
 - Fix lesson durations after the M4 rehearsal in P12.
 
