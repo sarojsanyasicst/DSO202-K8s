@@ -1,16 +1,17 @@
 # CloudCart project status
 
-Last updated: 2026-10-16 (Asia/Thimphu).
+Last updated: 2026-10-24 (Asia/Thimphu).
 
 ## Current position
 
-- **Phase:** project setup complete; application foundation next.
+- **Phase:** P01 database foundation done; P02 (catalog, carts, access boundaries) next, when requested.
 - **Architecture:** approved by the instructor.
-- **Detailed implementation plan:** prepared; its application tasks have not started.
-- **Application:** no runnable backend, frontend, or worker yet.
-- **Infrastructure:** no cluster created or dependencies installed by this project.
-- **Next milestone:** P01 — runnable database foundation, when implementation is requested.
-- **Current blockers:** none for the completed structure/tracking task. Runtime prerequisites are not yet checked.
+- **Detailed implementation plan:** Task 1 complete; Tasks 2–12 not started.
+- **Application:** settings, database sessions, app factory, and Alembic scaffolding exist with passing unit and PostgreSQL integration tests. No product, cart, checkout, worker, or frontend features yet.
+- **Infrastructure:** none created by this project. Disposable test PostgreSQL/RabbitMQ run only through `make test-deps-up` and are removed by `make test-deps-down`. Versions are selected in [versions.yaml](deploy/platform/versions.yaml), not yet proven on a cluster.
+- **Version control:** local Git repository on `main`; P01 work on branch `p01-database-foundation`. No remote.
+- **Next milestone:** P02 — catalog, persistent carts, access boundaries.
+- **Current blockers:** none for P02. Known risks for later milestones: Docker Desktop VM has ~7.75 GiB against the 12–14 GiB planning estimate (P07/P09/P11); `promtool` not installed (P11).
 
 ## Milestone board
 
@@ -19,7 +20,7 @@ This is the single source of truth for milestone status. Detailed step checkboxe
 | ID | Milestone | Status | Evidence |
 | --- | --- | --- | --- |
 | S00 | Approved design, project structure, progress tracking | Done | [Design](docs/superpowers/specs/2026-10-16-cloudcart-design.md), [verification](docs/project/VERIFICATION.md) |
-| P01 | Runnable database foundation | Not started | — |
+| P01 | Runnable database foundation | Done | [Verification 2026-10-24](docs/project/VERIFICATION.md#2026-10-24--p01-runnable-database-foundation) |
 | P02 | Catalog, persistent carts, access boundaries | Not started | — |
 | P03 | Atomic checkout and durable order contract | Not started | — |
 | P04 | Reliable publisher and fulfillment worker | Not started | — |
@@ -36,7 +37,8 @@ This is the single source of truth for milestone status. Detailed step checkboxe
 
 ## Pending implementation choices
 
-- Verify and pin the runtime, chart, controller, and ARM64 image compatibility matrix in P01.
+- Close the two `partially_verified` compatibility edges in versions.yaml (Gateway API minimum Kubernetes version; kube-prometheus-stack on Kubernetes 1.36) before installing them in P07/P11.
+- Instructor to ratify the version choices recorded in [DECISIONS.md](docs/project/DECISIONS.md) (D014).
 - Measure Docker allocation and real cluster capacity in P07/P09/P11.
 - Configure a Git source reachable by Argo CD in P10; no remote destination has been chosen.
 - Add AMD64 image variants if the student distribution needs them in P06/P12.
