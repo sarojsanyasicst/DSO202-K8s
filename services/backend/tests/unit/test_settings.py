@@ -215,3 +215,20 @@ def test_settings_reject_non_amqp_broker_urls_without_echoing_them(
         Settings.from_env()
 
     assert TEST_PASSWORD not in str(raised.value)
+
+
+@pytest.mark.parametrize("value", ["v1", "v2", "1.4.0", "v2.0.0-rc.1", "dev", "2026.10.24+build.7"])
+def test_settings_accepts_release_versions(isolated_environment: pytest.MonkeyPatch, value: str) -> None:
+    isolated_environment.setenv("CLOUDCART_DATABASE_URL", VALID_DATABASE_URL)
+    isolated_environment.setenv("CLOUDCART_RELEASE_VERSION", value)
+
+    assert Settings.from_env().release_version == value
+
+
+@pytest.mark.parametrize("value", ["", "v 1", "v1<script>", "x" * 65, "v1/../v2"])
+def test_settings_rejects_unsafe_release_versions(isolated_environment: pytest.MonkeyPatch, value: str) -> None:
+    isolated_environment.setenv("CLOUDCART_DATABASE_URL", VALID_DATABASE_URL)
+    isolated_environment.setenv("CLOUDCART_RELEASE_VERSION", value)
+
+    with pytest.raises(ConfigurationError, match="CLOUDCART_RELEASE_VERSION"):
+        Settings.from_env()
