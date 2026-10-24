@@ -15,7 +15,7 @@ Updated: 2026-10-24 (Asia/Thimphu).
 
 P01 and P02 are done and verified ([P01 evidence](VERIFICATION.md#2026-10-24--p01-runnable-database-foundation), [P02 evidence](VERIFICATION.md#2026-10-24--p02-catalog-persistent-carts-and-access-boundaries)). P03–P12 are not started; begin each only when the instructor requests it.
 
-Git: `main` holds P01. P02 is on branch `claude/p02-catalog-carts-access-875a84` (code `c01e916`, `6f9f7c0`, plus the project-record commit) and is **not merged**; merging and pushing are the instructor's decision. Remote `origin` is the public GitHub repository https://github.com/sarojsanyasicst/DSO202-K8s, so never commit credentials, personal data, or machine secrets. Commits use the instructor's GitHub noreply identity.
+Git: `main` holds P01 and P02. P02 (`c01e916`, `6f9f7c0`, `ae2ec1e`) was merged through [PR #1](https://github.com/sarojsanyasicst/DSO202-K8s/pull/1) as merge commit `97aba5a` on 2026-10-24; branch `claude/p02-catalog-carts-access-875a84` still exists locally and on `origin`. Merges made on github.com use the GitHub account's email settings, not the local noreply configuration: `97aba5a` carries the account's primary email, which the instructor chose to keep. Enable GitHub's "Keep my email addresses private" setting, or merge locally, to keep later merge commits on the noreply identity. Remote `origin` is the public GitHub repository https://github.com/sarojsanyasicst/DSO202-K8s, so never commit credentials, personal data, or machine secrets. Commits use the instructor's GitHub noreply identity.
 
 What exists for later tasks to build on:
 
@@ -60,7 +60,6 @@ When the instructor requests it, begin P03 / Task 3: write the failing checkout 
   - Size the DB pool against PostgreSQL `max_connections` across replicas.
 - **Task 9:** `scripts/traffic.py` must reuse one cookie jar per virtual user and log in once; every cookieless `GET /session` inserts a `guests` row and nothing cleans them up yet (cleanup needs an owner and an `expires_at` index). Probes must never call `/session`.
 - **Instructor decisions pending:**
-  - Merge `claude/p02-catalog-carts-access-875a84` into `main` and push.
   - Ratify the D014 version matrix in [DECISIONS.md](DECISIONS.md).
   - Docker Desktop VM memory: ~7.75 GiB observed, against the 12–14 GiB planning estimate. Increase it before P07, or measure and accept it.
   - Optional: upgrade uv so local tests can run CPython 3.13.17, the same patch as the image (they currently use 3.13.15).

@@ -4,12 +4,12 @@ Last updated: 2026-10-24 (Asia/Thimphu).
 
 ## Current position
 
-- **Phase:** P02 catalog, persistent carts, and access boundaries done on branch `claude/p02-catalog-carts-access-875a84` (not yet merged into `main`); P03 (atomic checkout and outbox) next, when requested.
+- **Phase:** P02 catalog, persistent carts, and access boundaries done and merged into `main`; P03 (atomic checkout and outbox) next, when requested.
 - **Architecture:** approved by the instructor.
 - **Detailed implementation plan:** Tasks 1–2 complete; Tasks 3–12 not started.
 - **Application:** settings, database sessions, app factory, the first Alembic revision, product catalog, persistent guest carts, guest/instructor sessions with CSRF and same-origin checks, instructor stock updates, and the idempotent seed command, with passing unit and PostgreSQL integration tests. No checkout, worker, or frontend features yet.
 - **Infrastructure:** none created by this project. Disposable test PostgreSQL/RabbitMQ run only through `make test-deps-up` and are removed by `make test-deps-down`. Versions are selected in [versions.yaml](deploy/platform/versions.yaml), not yet proven on a cluster.
-- **Version control:** `main` holds P01; P02 is on branch `claude/p02-catalog-carts-access-875a84` awaiting the instructor's merge decision. Remote `origin` is the public GitHub repository [sarojsanyasicst/DSO202-K8s](https://github.com/sarojsanyasicst/DSO202-K8s); everything pushed there is public.
+- **Version control:** `main` holds P01 and P02; P02 was merged through [PR #1](https://github.com/sarojsanyasicst/DSO202-K8s/pull/1) as merge commit `97aba5a` on 2026-10-24. Remote `origin` is the public GitHub repository [sarojsanyasicst/DSO202-K8s](https://github.com/sarojsanyasicst/DSO202-K8s); everything pushed there is public.
 - **Next milestone:** P03 — atomic checkout and durable order contract.
 - **Current blockers:** none for P03. Known risks for later milestones: Docker Desktop VM has ~7.75 GiB against the 12–14 GiB planning estimate (P07/P09/P11); `promtool` not installed (P11).
 

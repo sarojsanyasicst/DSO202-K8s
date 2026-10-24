@@ -45,3 +45,10 @@ Append outcomes in chronological order. Use [HANDOFF.md](HANDOFF.md) for the cur
 - Verified on `6f9f7c0`: 38 unit and 100 integration tests passing, migration downgrade/upgrade round trip, and seed reruns without duplicates. See [verification](VERIFICATION.md).
 - Reviews found no Critical or Important code issues; ten minor items were deferred to later tasks with recorded rulings (see [handoff](HANDOFF.md)).
 - Next: P03 when requested. The branch is not yet merged into `main`.
+
+## 2026-10-24 — P02 merged into main
+
+- At the instructor's request, pushed `claude/p02-catalog-carts-access-875a84` and opened [PR #1](https://github.com/sarojsanyasicst/DSO202-K8s/pull/1); a pre-push check found no credentials or personal data beyond labelled test values.
+- The instructor asked for a merge commit: PR #1 was merged on GitHub at 16:25 (+0600) as `97aba5a` (parents `1ddb042` and `ae2ec1e`), and local `main` was fast-forwarded to it. The merged tree is identical to the tested branch head `ae2ec1e`. The repository has no CI checks, so local test runs remain the evidence.
+- The GitHub web merge recorded the account's primary email on `97aba5a` instead of the noreply identity (D018). The instructor chose to keep the commit rather than rewrite public `main`; later merges should use GitHub's email privacy setting or a local merge.
+- Next: P03 when requested.
