@@ -48,3 +48,30 @@ Limitations / remaining checks:
 **Reviews:** task review (spec + quality) approved after one fix round; final whole-branch review "with fixes"; one fix wave (`bfe4fee`) and a scoped re-review.
 
 **Limitations / remaining checks:** local tests ran on CPython 3.13.15 while the pinned image is `python:3.13.17-slim-trixie` (uv 0.12.17 cannot install 3.13.17). The libpq `tcp_user_timeout` setting is only effective on Linux; on macOS the test proves the value reaches libpq. Platform versions in `versions.yaml` are selected from primary sources but not installed or exercised; Gateway API minimum Kubernetes version and kube-prometheus-stack on Kubernetes 1.36 are `partially_verified`. No images, cluster, manifests, or dashboards exist yet. The 7.75 GiB Docker VM has not been measured against a running cluster.
+
+## 2026-10-24 — P02 catalog, persistent carts, and access boundaries
+
+**Change being verified:** branch `claude/p02-catalog-carts-access-875a84`, commits `c01e916` (tests) and `6f9f7c0` (implementation) on top of `1ddb042`. Catalog, identity, and cart feature modules; first Alembic revision `371b57c4f5aa`; seed command `python -m cloudcart.seed`; `CLOUDCART_COOKIE_SECURE` setting; `argon2-cffi` 25.1.0 locked (36 packages). Decisions D019–D023.
+
+**Commands (run by the session controller on HEAD `6f9f7c0`, 2026-10-24 15:31 +0600):**
+
+| Command or scenario | Expected | Observed |
+| --- | --- | --- |
+| `uv lock --check --project services/backend` | Lock matches pyproject | `Resolved 36 packages` |
+| `make test-unit` | Settings (including the `cookie_secure` default) and guard tests pass | `38 passed` |
+| `make test-deps-up` | Disposable dependencies healthy | PostgreSQL and RabbitMQ containers `Healthy` |
+| `make test-integration TEST=services/backend/tests/integration/test_shopping.py` | Seed idempotency, catalog, persistence across two app instances, quantity validation and limits, version increments, 404/409/413/422 cases pass against PostgreSQL | `27 passed in 4.32s` |
+| `make test-integration TEST=services/backend/tests/integration/test_access.py` | Guest isolation, instructor-only stock changes, CSRF 403, forged Origin / `Sec-Fetch-Site: cross-site` 403, expired guest and instructor sessions, cookie attributes, no secrets in responses or stored rows | `66 passed in 7.51s` |
+| `make test-integration` | Whole integration suite passes with `filterwarnings = error` | `100 passed in 11.57s` (66 access, 1 broker, 6 database, 27 shopping) |
+| Alembic round trip on a scratch database (`upgrade head`, `downgrade base`, `upgrade head`) | Tables created, removed, recreated | After upgrade: `alembic_version,cart_items,carts,guests,instructor_sessions,instructors,products`; after downgrade: `alembic_version` only; re-upgrade to `371b57c4f5aa` |
+| `python -m cloudcart.seed` twice on that database with a generated 24-character password | Exit 0 both times; no duplicates | `exit 0`, `exit 0`; 8 products, 8 distinct SKUs, 1 instructor, stored hash starts `$argon2id$` |
+| `python -m cloudcart.seed` with an 11-character password, then with none | Non-zero exit; message names the variable, never the value | `exit 1` both times: `cloudcart.seed: CLOUDCART_SEED_ADMIN_PASSWORD must be set to between 12 and 256 characters.` |
+| `make test-deps-down` | No project containers/networks/volumes remain; other resources untouched | 0 containers, 0 networks, 0 volumes; `dso202` and the other two containers still up; context still `kind-dso202` |
+
+The scratch database was created and dropped on the disposable test server by a controller script kept in the session scratchpad (not committed).
+
+**TDD evidence (implementer report):** before implementation both test files failed at import (`ModuleNotFoundError: No module named 'cloudcart.seed'`) and the new unit test failed (`'Settings' object has no attribute 'cookie_secure'`). The implementer also broke each guard on purpose and saw the matching tests fail: origin check disabled → 27 access failures; CSRF check disabled → 14; cart row lock removed → the 8-way concurrent update test failed 3/3; body limit and 422 handler removed → the 413 and password-echo tests failed.
+
+**Reviews:** task review (spec ✅, quality approved, 0 Critical/Important) and final whole-branch review ("with fixes": only this project-record update was required before merge). The final reviewer's database-free probes confirmed one DB session per request and correct 413 handling of bodies split across several ASGI messages. Seven task-review minors and three final-review minors were deferred with rulings; see [HANDOFF.md](HANDOFF.md).
+
+**Limitations / remaining checks:** same-origin and cookie behavior was exercised with synthetic `Origin`/`Sec-Fetch-Site` headers through TestClient over `https://testserver`, not in a real browser (Task 5 Playwright). The same-origin guard relies on the gateway preserving `Host`; untested until Task 7. Argon2 memory under concurrent logins, guest-row growth, and API resource limits are unmeasured. No image, cluster, or deployment exists yet. Local tests ran on CPython 3.13.15 (image pins 3.13.17).

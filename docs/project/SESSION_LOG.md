@@ -36,3 +36,12 @@ Append outcomes in chronological order. Use [HANDOFF.md](HANDOFF.md) for the cur
 - The instructor added the public GitHub remote `origin` (https://github.com/sarojsanyasicst/DSO202-K8s) and renamed the P01 branch to `main`, so P01 is integrated without a separate merge.
 - Before the first push, the eight local commits were rewritten from the university email to the GitHub noreply identity, with dates and file contents unchanged. Commit hashes cited in project records were updated to the new values (for example, P01 now spans `1d1783a`..`bfe4fee`).
 - Checked the tracked files for credentials and personal data before publishing: none found besides the labelled disposable test credentials.
+
+## 2026-10-24 — P02 catalog, persistent carts, and access boundaries
+
+- The instructor requested P02. Work ran in worktree branch `claude/p02-catalog-carts-access-875a84` with a subagent implementer, a task review, and a final whole-branch review.
+- Settled eleven design questions before implementation (recorded as D019–D023): Argon2id via `argon2-cffi`, hashed opaque session tokens with fixed lifetimes, Strict HttpOnly cookies secure by default, an HMAC session-bound CSRF token plus Origin/`Sec-Fetch-Site` checks, seed password from `CLOUDCART_SEED_ADMIN_PASSWORD`, and cart limits with a version counter.
+- Delivered catalog, identity, and cart modules, migration `371b57c4f5aa`, the idempotent seed command, and 93 new integration tests (`c01e916`, `6f9f7c0`).
+- Verified on `6f9f7c0`: 38 unit and 100 integration tests passing, migration downgrade/upgrade round trip, and seed reruns without duplicates. See [verification](VERIFICATION.md).
+- Reviews found no Critical or Important code issues; ten minor items were deferred to later tasks with recorded rulings (see [handoff](HANDOFF.md)).
+- Next: P03 when requested. The branch is not yet merged into `main`.
