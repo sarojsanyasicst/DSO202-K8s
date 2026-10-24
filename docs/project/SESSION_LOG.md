@@ -78,3 +78,10 @@ Append outcomes in chronological order. Use [HANDOFF.md](HANDOFF.md) for the cur
 - Verified on `049b220`: 61 unit and 186 integration tests passing, Alembic `check` and round trip, 15 mutation checks. See [verification](VERIFICATION.md).
 - The review found no Critical issues; its one Important item (a non-connection database error dropped the task) was fixed with a failing-first test. Ten minors were deferred or ruled on (see [handoff](HANDOFF.md)).
 - Next: P05 when requested. The branch is local only: not pushed and not merged into `main`.
+
+## 2026-10-24 — P04 merged into main
+
+- At the instructor's request, pushed `claude/p04-start-3c8765` and opened [PR #3](https://github.com/sarojsanyasicst/DSO202-K8s/pull/3) (ready for review). A pre-push check found the noreply identity on all five branch commits and no credentials, personal data, or local paths beyond labelled test values.
+- The instructor chose a local merge: merge commit `a278ceb` (parents `a459ed4` and `da1affe`, noreply author and committer) was created on top of `origin/main` and pushed to `main` together with this record. The merged tree is identical to the tested branch head `da1affe`.
+- Full suite on the merged tree at about 23:10 (+0600), run under `caffeinate -i`: `61 passed` (unit) and `186 passed in 76.21s` (integration); test containers removed afterwards. The repository has no CI checks, so local runs remain the evidence.
+- Next: P05 when requested.
