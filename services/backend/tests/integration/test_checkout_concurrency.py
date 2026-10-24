@@ -7,7 +7,6 @@ whole requests from several API instances, each with its own connection pool.
 """
 
 import threading
-import time
 from collections.abc import Callable, Iterator
 from concurrent.futures import ThreadPoolExecutor
 from uuid import UUID, uuid4
@@ -23,11 +22,10 @@ from cloudcart.db import Database
 from cloudcart.identity.security import ensure_guest
 from cloudcart.orders.service import InsufficientStockError, checkout
 from cloudcart.seed import seed_database
-from helpers import Browser, OpenClient, run_sql, start_guest
+from helpers import LOCK_WAIT_TIMEOUT_SECONDS, Browser, OpenClient, backend_pid, run_sql, start_guest, wait_until_blocked
 
 # TEST-ONLY instructor password.
 ADMIN_PASSWORD = "concurrency-test-instructor-password"
-LOCK_WAIT_TIMEOUT_SECONDS = 10
 
 
 @pytest.fixture
@@ -56,21 +54,6 @@ def guest_with_cart(database: Database, product_id: UUID) -> tuple[UUID, int]:
         guest = ensure_guest(session, None)
         cart = set_cart_item(session, guest.guest_id, product_id, 1)
     return guest.guest_id, cart.version
-
-
-def backend_pid(session: Session) -> int:
-    return session.execute(text("SELECT pg_backend_pid()")).scalar_one()
-
-
-def wait_until_blocked(database: Database, pid: int, by: int) -> None:
-    """Return once backend `pid` waits for a lock that backend `by` holds."""
-    deadline = time.monotonic() + LOCK_WAIT_TIMEOUT_SECONDS
-    while time.monotonic() < deadline:
-        [(blocked,)] = run_sql(database, "SELECT :by = ANY(pg_blocking_pids(:pid))", by=by, pid=pid)
-        if blocked:
-            return
-        time.sleep(0.02)
-    pytest.fail(f"Backend {pid} never waited for backend {by}; the transactions did not overlap.")
 
 
 def durable_counts(database: Database, product_id: UUID) -> tuple:

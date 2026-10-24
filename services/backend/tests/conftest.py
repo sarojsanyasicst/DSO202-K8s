@@ -113,7 +113,8 @@ def _upgrade_to_head(database_url: str) -> None:
 
 @pytest.fixture
 def integration_settings(test_database_url: str) -> Settings:
-    return Settings(database_url=SecretStr(test_database_url))
+    """API settings without the outbox publisher; publication tests enable it with a broker URL."""
+    return Settings(database_url=SecretStr(test_database_url), publisher_enabled=False)
 
 
 @pytest.fixture

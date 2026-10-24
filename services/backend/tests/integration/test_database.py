@@ -1,5 +1,8 @@
 """Database foundation behaviour against the disposable PostgreSQL server."""
 
+import os
+import subprocess
+import sys
 import time
 from collections.abc import Iterator
 
@@ -21,7 +24,7 @@ from cloudcart.db import (
     Database,
 )
 from cloudcart.main import create_app
-from support import truncate_application_tables
+from support import truncate_application_tables, without_ambient_settings
 
 PROBE_TABLE = "session_scope_probe"
 
@@ -60,6 +63,20 @@ def test_migrations_bring_fresh_test_database_to_head(database: Database, alembi
     assert database_name.startswith("cloudcart_test_")
     assert has_version_table is True
     assert applied_revisions == script_heads
+
+
+def test_models_match_the_migrated_schema(alembic_config: Config, test_database_url: str) -> None:
+    """`alembic check` through the real env.py: a model change without its migration fails here."""
+    result = subprocess.run(
+        [sys.executable, "-m", "alembic", "-c", alembic_config.config_file_name, "check"],
+        env={**without_ambient_settings(os.environ), "CLOUDCART_DATABASE_URL": test_database_url},
+        capture_output=True,
+        text=True,
+        timeout=60,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
 
 
 def test_session_scope_commits_on_success(database: Database, probe_table: str, test_database_url: str) -> None:
