@@ -3,7 +3,6 @@
 import base64
 import hashlib
 import hmac
-from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
@@ -12,11 +11,11 @@ import pytest
 from fastapi.testclient import TestClient
 from httpx2 import Response
 from pydantic import SecretStr
-from sqlalchemy import text
 
 from cloudcart.config import Settings
 from cloudcart.db import Database
 from cloudcart.seed import seed_database
+from helpers import Browser, OpenClient, run_sql, start_guest
 
 # TEST-ONLY instructor password.
 ADMIN_PASSWORD = "access-test-instructor-password"
@@ -36,23 +35,6 @@ CROSS_SITE_HEADERS = [
 ]
 CROSS_SITE_IDS = ["other-host", "suffix-host", "other-port", "opaque-origin", "fetch-metadata", "both"]
 
-type OpenClient = Callable[..., TestClient]
-
-
-@dataclass
-class Browser:
-    """A client plus the CSRF token returned when its session started."""
-
-    client: TestClient
-    csrf_token: str
-
-    def send(
-        self, method: str, url: str, body: object = None, csrf_token: str | None = None, **headers: str
-    ) -> Response:
-        if csrf_token is not None:
-            headers["X-CSRF-Token"] = csrf_token
-        return self.client.request(method, url, json=body, headers=headers)
-
 
 @dataclass(frozen=True)
 class Change:
@@ -63,14 +45,27 @@ class Change:
     method: str
     path: str
     body: object
+    headers: tuple[tuple[str, str], ...] = ()  # sent with every attempt, e.g. Idempotency-Key
+    success: int = 200
 
-    def url(self, product_id: UUID) -> str:
-        return self.path.format(product_id=product_id)
+    def send(self, actor: Browser, product_id: UUID, csrf_token: str | None, **headers: str) -> Response:
+        url = self.path.format(product_id=product_id)
+        return actor.send(self.method, url, self.body, csrf_token, **dict(self.headers), **headers)
 
 
 GUEST_CHANGES = [
     Change("set-cart-item", "guest", "PUT", "/api/v1/cart/items/{product_id}", {"quantity": 2}),
     Change("remove-cart-item", "guest", "DELETE", "/api/v1/cart/items/{product_id}", None),
+    # The `guest` fixture's cart is at version 1.
+    Change(
+        "checkout",
+        "guest",
+        "POST",
+        "/api/v1/orders",
+        {"cart_version": 1, "payment_outcome": "approved"},
+        headers=(("Idempotency-Key", "access-test-checkout-key"),),
+        success=201,
+    ),
 ]
 INSTRUCTOR_CHANGES = [
     Change("update-stock", "instructor", "PUT", "/api/v1/admin/products/{product_id}/stock", {"stock": 42}),
@@ -84,6 +79,14 @@ def item_url(product_id: UUID) -> str:
 
 def stock_url(product_id: UUID) -> str:
     return f"/api/v1/admin/products/{product_id}/stock"
+
+
+def check_out(browser: Browser, product_id: UUID, key: str) -> Response:
+    """Put one unit of `product_id` in the cart and check it out."""
+    cart = browser.send("PUT", item_url(product_id), {"quantity": 1}, browser.csrf_token)
+    assert cart.status_code == 200, cart.text
+    body = {"cart_version": cart.json()["version"], "payment_outcome": "approved"}
+    return browser.send("POST", "/api/v1/orders", body, browser.csrf_token, **{"Idempotency-Key": key})
 
 
 def credentials(password: str = ADMIN_PASSWORD, username: str = INSTRUCTOR_USERNAME) -> dict[str, str]:
@@ -109,18 +112,6 @@ def cookie_attributes(response: Response, name: str) -> dict[str, str]:
         key, _, attribute_value = attribute.partition("=")
         parsed[key.lower()] = attribute_value
     return parsed
-
-
-def run_sql(database: Database, statement: str, **parameters: object) -> list:
-    with database.engine.begin() as connection:
-        result = connection.execute(text(statement), parameters)
-        return result.all() if result.returns_rows else []
-
-
-def start_guest(client: TestClient) -> Browser:
-    response = client.get("/api/v1/session")
-    assert response.status_code == 200
-    return Browser(client, response.json()["csrf_token"])
 
 
 def log_in(client: TestClient, password: str = ADMIN_PASSWORD) -> Browser:
@@ -155,11 +146,13 @@ def actors(guest: Browser, instructor: Browser) -> dict[str, Browser]:
 
 
 def observed_state(database: Database, product_id: UUID) -> tuple:
-    """Everything a forged change could alter: cart versions and lines, and product stock."""
+    """Everything a forged change could alter: cart versions and lines, product stock, orders, and outbox events."""
     return (
         run_sql(database, "SELECT id, version FROM carts ORDER BY id"),
         run_sql(database, "SELECT cart_id, product_id, quantity FROM cart_items ORDER BY cart_id, product_id"),
         run_sql(database, "SELECT stock FROM products WHERE id = :id", id=product_id),
+        run_sql(database, "SELECT id, guest_id, status FROM orders ORDER BY id"),
+        run_sql(database, "SELECT id, order_id FROM outbox_events ORDER BY id"),
     )
 
 
@@ -224,6 +217,26 @@ def test_cart_requires_a_live_guest_session(open_client: OpenClient, product_id:
         assert browser.send("DELETE", item_url(product_id), None, browser.csrf_token).status_code == 401
 
 
+def test_orders_require_a_live_guest_session(open_client: OpenClient, database: Database, product_id: UUID) -> None:
+    owner = start_guest(open_client())
+    order_id = check_out(owner, product_id, "access-test-owner-key").json()["id"]
+    forged_token = "x" * 43
+    anonymous = Browser(open_client(), csrf_token="")
+    stranger = Browser(open_client(cookies={GUEST_COOKIE: forged_token}), expected_csrf_token(forged_token))
+    instructor = log_in(open_client())  # an instructor session is not a guest session
+    checkout_body = {"cart_version": 1, "payment_outcome": "approved"}
+
+    for browser in (anonymous, stranger, instructor):
+        assert browser.send("GET", "/api/v1/orders").status_code == 401
+        assert browser.send("GET", f"/api/v1/orders/{order_id}").status_code == 401
+        assert browser.send("GET", f"/api/v1/orders/{order_id}/receipt").status_code == 401
+        placed = browser.send(
+            "POST", "/api/v1/orders", checkout_body, browser.csrf_token, **{"Idempotency-Key": "access-test-key"}
+        )
+        assert placed.status_code == 401
+    assert run_sql(database, "SELECT count(*) FROM orders") == [(1,)]
+
+
 def test_guests_cannot_see_or_change_each_others_carts(
     open_client: OpenClient, database: Database, product_id: UUID
 ) -> None:
@@ -278,6 +291,32 @@ def test_expired_guest_session_is_rejected_and_never_revived(
     assert run_sql(database, "SELECT expires_at < now() FROM guests WHERE id = :id", id=old_guest_id) == [(True,)]
     stale = open_client(cookies={GUEST_COOKIE: old_token})
     assert stale.get("/api/v1/cart").status_code == 401
+
+
+def test_guests_cannot_read_each_others_orders_or_receipts(
+    open_client: OpenClient, database: Database, product_id: UUID
+) -> None:
+    alice = start_guest(open_client())
+    alice_order = check_out(alice, product_id, "access-test-alice-key").json()
+    run_sql(database, "INSERT INTO receipts (id, order_id) VALUES (:id, :order_id)", id=uuid4(), order_id=alice_order["id"])
+    bob = start_guest(open_client())
+    unknown_id = uuid4()
+
+    # Alice's own reads succeed.
+    assert alice.send("GET", f"/api/v1/orders/{alice_order['id']}").status_code == 200
+    assert alice.send("GET", f"/api/v1/orders/{alice_order['id']}/receipt").status_code == 200
+    # To Bob, Alice's guessed order id is indistinguishable from an id that does not exist.
+    for suffix in ("", "/receipt"):
+        guessed = bob.send("GET", f"/api/v1/orders/{alice_order['id']}{suffix}")
+        unknown = bob.send("GET", f"/api/v1/orders/{unknown_id}{suffix}")
+        assert guessed.status_code == unknown.status_code == 404
+        assert guessed.json() == unknown.json()
+    assert bob.send("GET", "/api/v1/orders").json() == []
+    # Bob checking out with Alice's key creates Bob's own order and leaves Alice's alone.
+    bob_order = check_out(bob, product_id, "access-test-alice-key")
+    assert bob_order.status_code == 201
+    assert bob_order.json()["id"] != alice_order["id"]
+    assert [order["id"] for order in alice.send("GET", "/api/v1/orders").json()] == [alice_order["id"]]
 
 
 # --- Instructor authentication ----------------------------------------------------------------
@@ -430,7 +469,7 @@ def test_state_changing_routes_require_the_session_csrf_token(
     csrf_token = {"missing": None, "wrong": expected_csrf_token("not-this-session"), "empty": ""}[presented]
     before = observed_state(database, product_id)
 
-    response = actor.send(change.method, change.url(product_id), change.body, csrf_token)
+    response = change.send(actor, product_id, csrf_token)
 
     assert response.status_code == 403
     assert observed_state(database, product_id) == before
@@ -444,7 +483,7 @@ def test_cross_site_requests_are_rejected_even_with_a_valid_csrf_token(
     actor = actors[change.actor]
     before = observed_state(database, product_id)
 
-    response = actor.send(change.method, change.url(product_id), change.body, actor.csrf_token, **forged)
+    response = change.send(actor, product_id, actor.csrf_token, **forged)
 
     assert response.status_code == 403
     assert observed_state(database, product_id) == before
@@ -457,22 +496,21 @@ def test_same_origin_requests_with_the_csrf_token_succeed(
     actor = actors[change.actor]
     headers = {"Origin": SAME_ORIGIN, "Sec-Fetch-Site": "same-origin"}
 
-    response = actor.send(change.method, change.url(product_id), change.body, actor.csrf_token, **headers)
+    response = change.send(actor, product_id, actor.csrf_token, **headers)
 
-    assert response.status_code == 200
+    assert response.status_code == change.success, response.text
 
 
 @pytest.mark.parametrize("change", ALL_CHANGES, ids=[change.name for change in ALL_CHANGES])
 def test_checks_run_in_order_origin_then_session_then_csrf(
     open_client: OpenClient, actors: dict[str, Browser], product_id: UUID, change: Change
 ) -> None:
-    url = change.url(product_id)
     no_session = Browser(open_client(), csrf_token="")
     forged = {"Origin": "https://attacker.example"}
 
-    assert no_session.send(change.method, url, change.body, None, **forged).status_code == 403
-    assert no_session.send(change.method, url, change.body, None).status_code == 401
-    assert actors[change.actor].send(change.method, url, change.body, None).status_code == 403
+    assert change.send(no_session, product_id, None, **forged).status_code == 403
+    assert change.send(no_session, product_id, None).status_code == 401
+    assert change.send(actors[change.actor], product_id, None).status_code == 403
 
 
 @pytest.mark.parametrize("forged", CROSS_SITE_HEADERS, ids=CROSS_SITE_IDS)
@@ -516,6 +554,14 @@ def test_responses_never_contain_session_tokens_or_password_hashes(
     responses += [
         instructor.send("PUT", stock_url(product_id), {"stock": 5}, instructor.csrf_token),
         instructor.send("PUT", stock_url(product_id), {"stock": -5}, instructor.csrf_token),
+    ]
+    order = check_out(guest, product_id, "access-test-secrets-key")
+    responses += [
+        order,
+        check_out(guest, product_id, "access-test-secrets-key"),
+        guest.send("GET", "/api/v1/orders"),
+        guest.send("GET", f"/api/v1/orders/{order.json()['id']}"),
+        guest.send("GET", f"/api/v1/orders/{order.json()['id']}/receipt"),
     ]
 
     guest_token = guest_client.cookies[GUEST_COOKIE]

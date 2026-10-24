@@ -52,3 +52,12 @@ Append outcomes in chronological order. Use [HANDOFF.md](HANDOFF.md) for the cur
 - The instructor asked for a merge commit: PR #1 was merged on GitHub at 16:25 (+0600) as `97aba5a` (parents `1ddb042` and `ae2ec1e`), and local `main` was fast-forwarded to it. The merged tree is identical to the tested branch head `ae2ec1e`. The repository has no CI checks, so local test runs remain the evidence.
 - The GitHub web merge recorded the account's primary email on `97aba5a` instead of the noreply identity (D018). The instructor chose to keep the commit rather than rewrite public `main`; later merges should use GitHub's email privacy setting or a local merge.
 - Next: P03 when requested.
+
+## 2026-10-24 — P03 atomic checkout and durable order contract
+
+- The instructor requested P03. Work ran inline (superpowers executing-plans) in worktree branch `claude/p03-start-ce835d`, with test-first development and one fresh whole-branch review.
+- Settled the checkout contract and storage (D024–D026): `POST /api/v1/orders` with `cart_version`, a simulated `payment_outcome`, and a required `Idempotency-Key`; 201/200 for new/replayed orders, 409 for conflicts, 402 for declines; cart-then-products-by-id lock order with guarded stock updates; one outbox event and at most one receipt per order.
+- Delivered the orders module, migration `e7b83d9b2137`, guest order/receipt reads, and 56 new or extended tests (`50aca8d`, `e910f54`, `bf08d29`). Consolidated duplicated test helpers into `tests/helpers.py` and added the requested `RequestBodyLimit` unit test.
+- Verified on `bf08d29`: 42 unit and 154 integration tests passing, Alembic `check` and round trip, mutation checks for every concurrency and idempotency guard. See [verification](VERIFICATION.md).
+- The review found no Critical issues. Its one Important item, a missing test for the product lock order, was fixed. Five minor items were deferred (see [handoff](HANDOFF.md)).
+- Next: P04 when requested. The branch is local only: not pushed and not merged into `main`.

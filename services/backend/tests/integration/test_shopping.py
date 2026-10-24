@@ -16,6 +16,7 @@ from cloudcart.config import Settings
 from cloudcart.db import Database
 from cloudcart.main import create_app
 from cloudcart.seed import seed_database
+from helpers import run_sql
 from support import without_ambient_settings
 
 SEED_TIMEOUT_SECONDS = 60
@@ -73,11 +74,6 @@ def product_rows(database: Database) -> dict[str, tuple[UUID, int, int]]:
     with database.engine.connect() as connection:
         rows = connection.execute(text("SELECT sku, id, price_cents, stock FROM products")).all()
     return {sku: (product_id, price, stock) for sku, product_id, price, stock in rows}
-
-
-def run_sql(database: Database, statement: str, **parameters: object) -> None:
-    with database.engine.begin() as connection:
-        connection.execute(text(statement), parameters)
 
 
 def run_seed_command(database_url: str, admin_password: str | None) -> subprocess.CompletedProcess[str]:
@@ -376,6 +372,10 @@ def test_openapi_documents_closed_bounded_request_schemas(open_client: Callable[
         ("/api/v1/cart/items/{product_id}", "delete"),
         ("/api/v1/admin/login", "post"),
         ("/api/v1/admin/products/{product_id}/stock", "put"),
+        ("/api/v1/orders", "get"),
+        ("/api/v1/orders", "post"),
+        ("/api/v1/orders/{order_id}", "get"),
+        ("/api/v1/orders/{order_id}/receipt", "get"),
     }
 
     def request_schema(path: str, method: str) -> dict:

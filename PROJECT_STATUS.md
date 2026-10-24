@@ -4,14 +4,14 @@ Last updated: 2026-10-24 (Asia/Thimphu).
 
 ## Current position
 
-- **Phase:** P02 catalog, persistent carts, and access boundaries done and merged into `main`; P03 (atomic checkout and outbox) next, when requested.
+- **Phase:** P03 atomic checkout and durable order contract done on branch `claude/p03-start-ce835d` (not yet merged into `main`); P04 (reliable publisher and fulfillment worker) next, when requested.
 - **Architecture:** approved by the instructor.
-- **Detailed implementation plan:** Tasks 1–2 complete; Tasks 3–12 not started.
-- **Application:** settings, database sessions, app factory, the first Alembic revision, product catalog, persistent guest carts, guest/instructor sessions with CSRF and same-origin checks, instructor stock updates, and the idempotent seed command, with passing unit and PostgreSQL integration tests. No checkout, worker, or frontend features yet.
+- **Detailed implementation plan:** Tasks 1–3 complete; Tasks 4–12 not started.
+- **Application:** settings, database sessions, app factory, the first Alembic revision, product catalog, persistent guest carts, guest/instructor sessions with CSRF and same-origin checks, instructor stock updates, the idempotent seed command, atomic checkout with idempotent retries, guest order history/status/receipt reads, and one outbox event per order, with passing unit and PostgreSQL integration tests. Nothing publishes outbox events or fulfills orders yet (P04); no frontend yet.
 - **Infrastructure:** none created by this project. Disposable test PostgreSQL/RabbitMQ run only through `make test-deps-up` and are removed by `make test-deps-down`. Versions are selected in [versions.yaml](deploy/platform/versions.yaml), not yet proven on a cluster.
-- **Version control:** `main` holds P01 and P02; P02 was merged through [PR #1](https://github.com/sarojsanyasicst/DSO202-K8s/pull/1) as merge commit `97aba5a` on 2026-10-24. Remote `origin` is the public GitHub repository [sarojsanyasicst/DSO202-K8s](https://github.com/sarojsanyasicst/DSO202-K8s); everything pushed there is public.
-- **Next milestone:** P03 — atomic checkout and durable order contract.
-- **Current blockers:** none for P03. Known risks for later milestones: Docker Desktop VM has ~7.75 GiB against the 12–14 GiB planning estimate (P07/P09/P11); `promtool` not installed (P11).
+- **Version control:** `main` holds P01 and P02; P03 is committed on worktree branch `claude/p03-start-ce835d` (local only, not pushed). P02 was merged through [PR #1](https://github.com/sarojsanyasicst/DSO202-K8s/pull/1) as merge commit `97aba5a` on 2026-10-24. Remote `origin` is the public GitHub repository [sarojsanyasicst/DSO202-K8s](https://github.com/sarojsanyasicst/DSO202-K8s); everything pushed there is public.
+- **Next milestone:** P04 — reliable publisher and fulfillment worker.
+- **Current blockers:** none for P04. Known risks for later milestones: Docker Desktop VM has ~7.75 GiB against the 12–14 GiB planning estimate (P07/P09/P11); `promtool` not installed (P11).
 
 ## Milestone board
 
@@ -22,7 +22,7 @@ This is the single source of truth for milestone status. Detailed step checkboxe
 | S00 | Approved design, project structure, progress tracking | Done | [Design](docs/superpowers/specs/2026-10-16-cloudcart-design.md), [verification](docs/project/VERIFICATION.md) |
 | P01 | Runnable database foundation | Done | [Verification 2026-10-24](docs/project/VERIFICATION.md#2026-10-24--p01-runnable-database-foundation) |
 | P02 | Catalog, persistent carts, access boundaries | Done | [Verification 2026-10-24](docs/project/VERIFICATION.md#2026-10-24--p02-catalog-persistent-carts-and-access-boundaries) |
-| P03 | Atomic checkout and durable order contract | Not started | — |
+| P03 | Atomic checkout and durable order contract | Done | [Verification 2026-10-24](docs/project/VERIFICATION.md#2026-10-24--p03-atomic-checkout-and-durable-order-contract) |
 | P04 | Reliable publisher and fulfillment worker | Not started | — |
 | P05 | Storefront and instructor view | Not started | — |
 | P06 | Versioned images and software-team handoff | Not started | — |

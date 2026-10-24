@@ -1,7 +1,7 @@
 """Isolation applied to every integration test, whichever fixtures it requests, and API client helpers."""
 
 import os
-from collections.abc import Callable, Iterator
+from collections.abc import Iterator
 from contextlib import ExitStack
 
 import pytest
@@ -11,12 +11,11 @@ from pydantic import SecretStr
 from cloudcart.config import Settings
 from cloudcart.db import Database
 from cloudcart.main import create_app
+from helpers import OpenClient
 from support import truncate_application_tables, without_ambient_settings
 
 # HTTPS, so cookies marked Secure are stored and sent back like a browser would.
 API_BASE_URL = "https://testserver"
-
-type OpenClient = Callable[..., TestClient]
 
 
 @pytest.fixture(autouse=True)

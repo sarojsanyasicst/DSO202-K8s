@@ -2,7 +2,8 @@
 
 Every change locks the guest's cart row for the rest of the transaction, so
 concurrent changes to one cart apply one at a time and each increments the
-version by exactly one.
+version by exactly one. Writers lock the cart row before any product row:
+checkout (orders/service.py) relies on that order to avoid deadlocks.
 """
 
 from uuid import UUID
@@ -64,6 +65,20 @@ def remove_cart_item(session: Session, guest_id: UUID, product_id: UUID) -> Cart
     )
     if removed.rowcount == 0:
         raise CartLineNotFoundError(product_id)
+    return _record_change(session, cart)
+
+
+def lock_guest_cart(session: Session, guest_id: UUID) -> Cart:
+    """The guest's cart row, created empty on first use and locked until the transaction ends.
+
+    Take this lock before locking any product row.
+    """
+    return _guest_cart(session, guest_id, lock=True)
+
+
+def clear_cart(session: Session, cart: Cart) -> CartView:
+    """Remove every line from a cart locked with `lock_guest_cart`; emptying it counts as one change."""
+    session.execute(delete(CartItem).where(CartItem.cart_id == cart.id))
     return _record_change(session, cart)
 
 

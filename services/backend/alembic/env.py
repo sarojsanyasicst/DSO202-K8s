@@ -13,6 +13,7 @@ from alembic import context
 import cloudcart.cart.models  # noqa: F401
 import cloudcart.catalog.models  # noqa: F401
 import cloudcart.identity.models  # noqa: F401
+import cloudcart.orders.models  # noqa: F401
 from cloudcart.config import Settings
 from cloudcart.db import Base, Database
 
