@@ -30,8 +30,11 @@ def create_celery(settings: Settings, component: str) -> Celery:
     - Late acknowledgement and prefetch 1: a task is acknowledged only after it returns,
       and a worker holds at most one unacknowledged task, so a crash or a lost connection
       sends the task back to the queue for another delivery.
-    - A task whose worker is lost is requeued; one still running when the broker connection
-      drops is cancelled, since RabbitMQ redelivers it anyway.
+    - A task whose worker is lost is requeued. The solo pool cannot cancel a task that is
+      running when the broker connection drops: it finishes, its acknowledgement fails, and
+      RabbitMQ redelivers it to a worker that tolerates duplicates.
+    - A task that raises is acknowledged and dropped. Fulfillment raises only for a malformed
+      message or a bug; database errors requeue instead (see cloudcart.jobs.tasks).
     - Results are not stored: PostgreSQL holds every business outcome.
     """
     app = Celery("cloudcart", set_as_current=False)
@@ -50,6 +53,7 @@ def create_celery(settings: Settings, component: str) -> Celery:
         task_create_missing_queues=False,
         task_default_delivery_mode="persistent",
         task_acks_late=True,
+        task_acks_on_failure_or_timeout=True,
         task_reject_on_worker_lost=True,
         worker_prefetch_multiplier=1,
         worker_cancel_long_running_tasks_on_connection_loss=True,

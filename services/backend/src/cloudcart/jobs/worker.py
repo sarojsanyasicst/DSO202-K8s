@@ -4,9 +4,10 @@ Runs one Celery worker process with the solo pool on the `orders` queue: one tas
 at a time, at most one unacknowledged message, and a single process per
 container, so each worker Pod is one observable scaling unit. SIGTERM starts a
 warm shutdown: the worker stops taking tasks, finishes the one in progress, and
-exits. A task takes at most the simulated dispatch delay plus the longest retry
-backoff and its bounded database calls, so a termination grace period of about
-30 s covers it.
+exits. A task takes at most CLOUDCART_FULFILLMENT_DELAY_MS plus the longest
+retry backoff (4 × CLOUDCART_FULFILLMENT_RETRY_BACKOFF_MS) plus its bounded
+database calls; set the termination grace period above that (with the defaults,
+1 s + 4 s plus a few statement timeouts, so about 20 s).
 """
 
 import os

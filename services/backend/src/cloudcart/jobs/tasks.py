@@ -17,9 +17,14 @@ and rejects the message with requeue, so RabbitMQ delivers it again. When the
 fourth attempt (the first plus three retries) fails, or a delivery finds four
 attempts already used (for example after repeated worker crashes), the order
 fails: its stock is returned and the reason recorded in one transaction.
-PostgreSQL errors before an attempt is recorded do not use up attempts: without
-its database the worker can neither process nor record a failure, so it waits
-the longest backoff and requeues the delivery until PostgreSQL answers.
+
+Database errors outside an attempt do not use up attempts: PostgreSQL may be
+unreachable, or refuse the worker's statements (for example a new worker
+started before its migration). The worker can then neither process nor record
+a failure, so it waits the longest backoff and requeues the delivery until
+PostgreSQL accepts it. An attempt that has been recorded counts, whatever ends
+it. Only a task that cannot name an order (an unknown order or a malformed
+message) is acknowledged without a final outcome.
 """
 
 import logging
@@ -32,7 +37,7 @@ from celery import Celery
 from celery.exceptions import Reject
 from sqlalchemy import select, update
 from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.exc import InterfaceError, OperationalError
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from cloudcart.catalog.models import Product
@@ -46,8 +51,6 @@ logger = logging.getLogger(__name__)
 
 MAX_FULFILLMENT_ATTEMPTS = 4  # the first attempt plus at most three retries
 FINISHED_STATUSES = frozenset({"fulfilled", "failed"})
-# Errors that mean PostgreSQL could not be reached or answer in time.
-DATABASE_UNAVAILABLE = (OperationalError, InterfaceError)
 
 
 @dataclass(frozen=True)
@@ -122,9 +125,9 @@ def handle_delivery(database: Database, settings: Settings, order_id: UUID, enqu
         _deliver(database, settings, order_id, enqueued_at, backoff)
     except UnknownOrderError:
         logger.error("Order %s does not exist; dropping its fulfillment task.", order_id)
-    except DATABASE_UNAVAILABLE as error:
+    except SQLAlchemyError as error:  # outside an attempt: nothing was decided or recorded
         _retry_later(
-            order_id, backoff * 2 ** (MAX_FULFILLMENT_ATTEMPTS - 2), f"PostgreSQL unavailable ({type(error).__name__})"
+            order_id, backoff * 2 ** (MAX_FULFILLMENT_ATTEMPTS - 2), f"database error ({type(error).__name__})"
         )
 
 
@@ -136,9 +139,9 @@ def _deliver(database: Database, settings: Settings, order_id: UUID, enqueued_at
             _record_failure(database, order_id, f"Gave up after {MAX_FULFILLMENT_ATTEMPTS} fulfillment attempts.")
         return
 
-    queued_seconds = (datetime.now(UTC) - enqueued_at).total_seconds()
-    logger.info("Order %s: attempt %d started %.1f s after publication.", order_id, attempt.number, queued_seconds)
     try:
+        queued_seconds = (datetime.now(UTC) - enqueued_at).total_seconds()
+        logger.info("Order %s: attempt %d started %.1f s after publication.", order_id, attempt.number, queued_seconds)
         simulate_dispatch(order_id, attempt.number, settings.fulfillment_delay_ms)
         with database.session_scope() as session:
             fulfill_order(session, order_id)

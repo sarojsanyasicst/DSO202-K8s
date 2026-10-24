@@ -349,6 +349,26 @@ def test_sigterm_during_a_task_lets_it_finish_and_acknowledges_it(
     assert orders_queue_state(broker_url) == (0, 0)
 
 
+def test_a_worker_ahead_of_the_schema_requeues_its_deliveries_until_the_migration_lands(
+    database: Database, publisher: OrderPublisher, start_worker: Callable[..., WorkerProcess]
+) -> None:
+    """A database error that is not a lost connection (here UndefinedColumn) must not drop the task."""
+    placed = place_order(database, quantity=2, stock=5)
+    worker = start_worker()
+    run_sql(database, "ALTER TABLE orders RENAME COLUMN fulfillment_attempts TO fulfillment_attempts_pending")
+    try:
+        publish(database, publisher)
+        wait_until(lambda: "ProgrammingError" in worker.log(), "the worker hits the schema mismatch")
+        time.sleep(0.5)  # a few more deliveries fail meanwhile
+        assert run_sql(database, "SELECT status FROM orders WHERE id = :id", id=placed.order_id) == [("accepted",)]
+    finally:
+        run_sql(database, "ALTER TABLE orders RENAME COLUMN fulfillment_attempts_pending TO fulfillment_attempts")
+
+    wait_until(lambda: order_state(database, placed.order_id)[0] == "fulfilled", "the requeued task succeeds")
+    assert order_state(database, placed.order_id) == ("fulfilled", 1, 1)
+    assert stock_of(database, placed.product_id) == 3
+
+
 def test_an_idle_worker_stops_within_seconds_of_sigterm(
     broker_url: str, start_worker: Callable[..., WorkerProcess]
 ) -> None:

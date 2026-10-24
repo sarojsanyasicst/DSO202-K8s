@@ -34,8 +34,10 @@ from cloudcart.orders.models import OutboxEvent
 logger = logging.getLogger(__name__)
 
 BATCH_LIMIT = 20
-# A claim outlives a full batch of bounded publishes; after a publisher crash its
-# events wait this long before another publisher takes them over.
+# After a publisher crash its claimed events wait this long before another
+# publisher takes them over. A batch slowed down by a stalling broker can outlast
+# the lease; another publisher may then send an event again, a duplicate the
+# worker tolerates.
 CLAIM_LEASE = timedelta(seconds=60)
 MAX_BACKOFF_SECONDS = 30.0
 
