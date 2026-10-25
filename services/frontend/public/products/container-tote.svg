@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 240" width="320" height="240" role="img" aria-labelledby="t"><title id="t">Container Tote</title>
+<rect width="320" height="240" fill="#e3eaef"/>
+<path d="M124 96c0-46 72-46 72 0" fill="none" stroke="#13222c" stroke-width="10" stroke-linecap="round"/>
+<path d="M92 92h136l-10 114H102z" fill="#e9dcc0" stroke="#c4b38f" stroke-width="3"/>
+<g transform="translate(160 150)"><rect x="-50" y="-30" width="100" height="60" rx="3" fill="#1f4f9c"/><g stroke="#173d79" stroke-width="4"><path d="M-34-22v44M-18-22v44M-2-22v44M14-22v44M30-22v44"/></g><rect x="-50" y="-30" width="100" height="8" fill="#13222c"/></g>
+</svg>
