@@ -181,6 +181,60 @@ test('retrying after a dropped connection places exactly one order', async ({ pa
   await expect(page.getByRole('list', { name: 'Your orders' }).getByRole('listitem')).toHaveCount(1);
 });
 
+test('retrying after a gateway error places exactly one order', async ({ page }) => {
+  await page.goto('/');
+  await addToCart(page, 'YAML Notebook');
+  let failed = false;
+  await page.route('**/api/v1/orders', async (route) => {
+    if (route.request().method() === 'POST' && !failed) {
+      failed = true;
+      await route.fetch(); // the API accepts the order, then the gateway loses its answer
+      await route.fulfill({ status: 502, contentType: 'text/plain', body: 'Bad Gateway' });
+    } else {
+      await route.continue();
+    }
+  });
+
+  await placeOrder(page, 'Approve payment');
+  await expect(page.getByRole('alert')).toContainText('may already be placed');
+  await page.getByRole('button', { name: 'Retry order' }).click();
+
+  await expect(page).toHaveURL(ORDER_URL);
+  await page.getByRole('link', { name: 'Orders', exact: true }).click();
+  await expect(page.getByRole('list', { name: 'Your orders' }).getByRole('listitem')).toHaveCount(1);
+});
+
+test('a refused change shows the refusal, not a new session', async ({ page }) => {
+  await page.goto('/');
+  await addToCart(page, 'Helm Cap');
+  await page.getByRole('link', { name: /^Cart, / }).click();
+  // What a gateway that rewrites the Host header causes: same-origin reads work, every change is refused.
+  const refuseOnce = (method: string) => {
+    let refused = false;
+    return async (route: import('@playwright/test').Route) => {
+      if (route.request().method() === method && !refused) {
+        refused = true;
+        await route.fulfill({ status: 403, json: { detail: 'Cross-origin request refused.' } });
+      } else {
+        await route.continue();
+      }
+    };
+  };
+  await page.route('**/api/v1/cart/items/*', refuseOnce('PUT'));
+  await page.route('**/api/v1/orders', refuseOnce('POST'));
+
+  await cartLine(page, 'Helm Cap').getByLabel('Quantity').selectOption('2');
+  await expect(page.getByRole('alert')).toContainText('Cross-origin request refused.');
+  await expect(cartLine(page, 'Helm Cap').getByLabel('Quantity')).toHaveValue('1');
+
+  await page.getByRole('button', { name: 'Place order' }).click();
+  await expect(page.getByRole('region', { name: 'Order summary' }).getByRole('alert')).toContainText(
+    'Cross-origin request refused.',
+  );
+  await expect(page.getByText('Your previous session ended')).toHaveCount(0);
+  await expect(page).toHaveURL(/\/cart$/);
+});
+
 test('an expired session starts fresh without showing the previous guest anything', async ({ page }) => {
   await page.goto('/');
   await addToCart(page, 'Container Tote');

@@ -172,7 +172,14 @@ def order_overview(session: Session) -> AdminOrdersView:
     counts = dict.fromkeys(ORDER_STATUSES, 0)
     by_status = session.execute(select(Order.status, func.count()).group_by(Order.status))
     counts.update({status: count for status, count in by_status})
-    pending = session.scalar(select(func.count()).select_from(OutboxEvent).where(OutboxEvent.published_at.is_(None)))
+    # Only accepted orders can still be waiting: a worker may start an order before the publisher
+    # records the broker's confirm, leaving a processing or finished order's event unpublished.
+    pending = session.scalar(
+        select(func.count())
+        .select_from(OutboxEvent)
+        .join(Order, Order.id == OutboxEvent.order_id)
+        .where(OutboxEvent.published_at.is_(None), Order.status == "accepted")
+    )
     orders = session.scalars(
         select(Order).order_by(Order.created_at.desc(), Order.id.desc()).limit(MAX_LISTED_ORDERS)
     )
@@ -183,7 +190,7 @@ def order_overview(session: Session) -> AdminOrdersView:
             AdminOrderView(
                 id=order.id,
                 status=order.status,
-                publication_pending=_publication_pending(order),
+                publication_pending=order.status == "accepted" and _publication_pending(order),
                 fulfillment_attempts=order.fulfillment_attempts,
                 item_count=sum(item.quantity for item in order.items),
                 total_cents=order.total_cents,

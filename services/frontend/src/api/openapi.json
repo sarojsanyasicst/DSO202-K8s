@@ -25,7 +25,7 @@
             "type": "integer"
           },
           "publication_pending": {
-            "description": "True until the order has been handed to the fulfillment queue.",
+            "description": "True while an accepted order waits to be handed to the queue.",
             "title": "Publication Pending",
             "type": "boolean"
           },

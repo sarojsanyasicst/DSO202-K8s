@@ -294,7 +294,7 @@ export interface components {
             item_count: number;
             /**
              * Publication Pending
-             * @description True until the order has been handed to the fulfillment queue.
+             * @description True while an accepted order waits to be handed to the queue.
              */
             publication_pending: boolean;
             /** Receipt Available */

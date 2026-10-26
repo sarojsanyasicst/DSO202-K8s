@@ -205,6 +205,22 @@ def test_admin_orders_count_statuses_and_pending_publication(
     assert "test failure" not in instructor.send("GET", ADMIN_ORDERS_URL).text
 
 
+def test_pending_publication_counts_only_accepted_orders(
+    open_client: OpenClient, database: Database, instructor: Browser, product_ids: list[UUID]
+) -> None:
+    """A worker can start an order before the publisher records the broker's confirm, so a processing
+    (or finished) order can still have an unpublished event; it is no longer waiting to be queued."""
+    guest = start_guest(open_client())
+    waiting, started = (check_out(guest, product_ids[0], 1, f"admin-pending-{n}")["id"] for n in range(2))
+    run_sql(database, "UPDATE orders SET status = 'processing', fulfillment_attempts = 1 WHERE id = :id", id=started)
+
+    body = instructor.send("GET", ADMIN_ORDERS_URL).json()
+
+    assert body["status_counts"] == {"accepted": 1, "processing": 1, "fulfilled": 0, "failed": 0}
+    assert body["publication_pending"] == 1
+    assert {order["id"]: order["publication_pending"] for order in body["orders"]} == {waiting: True, started: False}
+
+
 def test_admin_orders_list_is_bounded_but_counts_are_complete(
     open_client: OpenClient, instructor: Browser, product_ids: list[UUID]
 ) -> None:

@@ -75,9 +75,10 @@ type GuestRun<T> = (csrfToken: string, renewed: boolean) => Promise<T>;
 
 type GuestSession = {
   /**
-   * Run guest requests with the session's CSRF token. A 401, or a 403 for a stale CSRF token,
-   * starts a new session once; `run` is then retried with `renewed` true unless `retry` is false,
-   * in which case SessionRenewedError is thrown.
+   * Run guest requests with the session's CSRF token. After a 401 or 403 the session is fetched
+   * again; when that yields a different session (expired, or replaced by another tab), `run` is
+   * retried once with `renewed` true, or SessionRenewedError is thrown when `retry` is false.
+   * When the session is unchanged the refusal had another cause, and its error is rethrown.
    */
   withGuest<T>(run: GuestRun<T>, options?: { retry?: boolean }): Promise<T>;
   /** Increases whenever the shopper becomes a different guest; data loaded for an older guest is stale. */
@@ -116,12 +117,15 @@ export function GuestSessionProvider({ children }: { children: ReactNode }) {
   const withGuest = useCallback(
     async <T,>(run: GuestRun<T>, { retry = true }: { retry?: boolean } = {}): Promise<T> => {
       const used = session();
+      const token = await used;
       try {
-        return await run(await used, false);
+        return await run(token, false);
       } catch (error) {
         if (!(error instanceof ApiError) || (error.status !== 401 && error.status !== 403)) throw error;
         if (pending.current === used) pending.current = null;
         const renewed = await session();
+        // Same session: for example the Origin check refused the change behind a Host-rewriting proxy.
+        if (renewed === token) throw error;
         if (!retry) throw new SessionRenewedError();
         return run(renewed, true);
       }

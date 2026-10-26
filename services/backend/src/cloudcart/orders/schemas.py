@@ -58,7 +58,7 @@ class AdminOrderView(BaseModel):
 
     id: UUID
     status: OrderStatus
-    publication_pending: bool = Field(description="True until the order has been handed to the fulfillment queue.")
+    publication_pending: bool = Field(description="True while an accepted order waits to be handed to the queue.")
     fulfillment_attempts: int = Field(description="Fulfillment attempts the worker has started (at most four).")
     item_count: int = Field(description="Units in the order.")
     total_cents: int

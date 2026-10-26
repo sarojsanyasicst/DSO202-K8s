@@ -156,11 +156,15 @@ function Summary({ cart }: { cart: Cart }) {
       await reload();
       navigate(`/orders/${order.id}`);
     } catch (error) {
-      if (error instanceof ConnectionError) {
-        // The order may exist already; only a retry with the same key can tell, without ordering twice.
+      // No answer, or a server-side failure (including a gateway's 502/503/504 when an API Pod goes
+      // away mid-request): the order may exist already. Only a retry with the same key can tell
+      // without ordering twice.
+      if (error instanceof ConnectionError || (error instanceof ApiError && error.status >= 500)) {
         setProblem({
           message:
-            'The connection dropped before the shop answered. Your order may already be placed: retry to finish it safely.',
+            error instanceof ConnectionError
+              ? 'The connection dropped before the shop answered. Your order may already be placed: retry to finish it safely.'
+              : 'The shop could not confirm your order. It may already be placed: retry to finish it safely.',
           retryable: true,
         });
         return;
