@@ -39,6 +39,6 @@ The run builds the storefront, serves it with `vite preview` on `http://localhos
 
 ## Behaviour worth knowing
 
-- One `GET /api/v1/session` at a time bootstraps the guest; a 401, or a 403 for a stale CSRF token, starts a new session once. A shopper whose session expired gets a new, empty cart and never sees the previous guest's orders.
-- Checkout sends a fresh `Idempotency-Key` per reviewed cart and payment choice, and resends it unchanged after a dropped connection, so a retry cannot order twice.
+- One `GET /api/v1/session` at a time bootstraps the guest. After a 401 or 403 the session is fetched again; only a different session (expired, or replaced in another tab) leads to one retry. Otherwise the refusal itself is shown. A shopper whose session expired gets a new, empty cart and never sees the previous guest's orders.
+- Checkout sends a fresh `Idempotency-Key` per reviewed cart and payment choice, and resends it unchanged after a dropped connection or a server or gateway error (5xx), so a retry cannot order twice.
 - Order pages poll every two seconds until the order is fulfilled or failed; the instructor view refreshes every three seconds.

@@ -56,7 +56,7 @@ All paths below are relative to the project root. Group Python by business featu
 
 Shared types: UUID IDs; timezone-aware UTC timestamps; integer minor currency units with currency fixed to USD for seed data. `OrderStatus = Literal['accepted', 'processing', 'fulfilled', 'failed']`. `OrderView` in `orders/schemas.py` contains `id: UUID`, `status: OrderStatus`, `publication_pending: bool`, `total_cents: int`, `created_at: datetime`, and `receipt_available: bool`. `CartView` in `cart/schemas.py` contains `id: UUID`, `version: int`, `items: list[CartItemView]`, and `total_cents: int`; each item has `product_id: UUID`, `quantity: int`, and `unit_price_cents: int`. `FulfillmentResult` in `orders/schemas.py` contains `order_id: UUID`, `status: OrderStatus`, `receipt_id: UUID | None`, and `already_applied: bool`. API responses never expose guest session tokens, password hashes, or raw exception traces.
 
-API contract: `/api/v1/products`, `/api/v1/session`, `/api/v1/cart`, `/api/v1/orders`, `/api/v1/orders/{id}`, `/api/v1/orders/{id}/receipt`, `/api/v1/admin/login`, `/api/v1/admin/orders`, `/api/v1/admin/products/{id}/stock`; `/health/live`, `/health/ready`, `/metrics`, `/api/v1/version`. State-changing routes require CSRF protection; checkout additionally requires `Idempotency-Key`. Define exact OpenAPI request schemas in the owning task and generate frontend types from that schema.
+API contract: `/api/v1/products`, `/api/v1/session`, `/api/v1/cart`, `/api/v1/orders`, `/api/v1/orders/{id}`, `/api/v1/orders/{id}/receipt`, `/api/v1/admin/login`, `/api/v1/admin/session`, `/api/v1/admin/logout`, `/api/v1/admin/orders`, `/api/v1/admin/products/{id}/stock`; `/health/live`, `/health/ready`, `/metrics`, `/api/v1/version`. State-changing routes require CSRF protection; checkout additionally requires `Idempotency-Key`. Define exact OpenAPI request schemas in the owning task and generate frontend types from that schema.
 
 Use one Uvicorn process per API Pod and one Celery solo worker process per worker Pod. This makes each Pod an observable scaling unit and avoids accidental metric duplication across Python subprocesses. Task execution and dependency calls are bounded; do not rely on prefork-only soft timeouts in solo mode.
 
@@ -110,10 +110,10 @@ Use one Uvicorn process per API Pod and one Celery solo worker process per worke
 
 **Interfaces:** Use the backend OpenAPI contract; keep session cookies same-origin. Screens: product grid, cart, simulated checkout, order history/detail/receipt, instructor login and inventory/orders. Display version and pending-publication/processing/failure states. Poll active order status every two seconds; stop polling when terminal or unmounted.
 
-- [ ] Write browser tests for browse→cart→checkout→fulfilled receipt; reload preserving the cart; stopping a worker leaving an accepted/processing order visible; error messages for stale stock and payment decline; instructor access restrictions; and expired session recovery without exposing a previous guest's data.
-- [ ] Run `npm --prefix services/frontend run test:e2e`; establish failing pages/flows against the Task 4 test services.
-- [ ] Implement a coherent responsive storefront with keyboard-accessible controls, labelled forms, empty/loading/error states, bounded uploads disabled, and product placeholder assets stored in the repository. Keep simulated payment prominent. Generate API types; avoid duplicating Python schemas manually.
-- [ ] Run browser tests and a production frontend build. Inspect desktop and narrow-screen rendering; confirm operational states and version are legible. Commit the frontend slice.
+- [x] Write browser tests for browse→cart→checkout→fulfilled receipt; reload preserving the cart; stopping a worker leaving an accepted/processing order visible; error messages for stale stock and payment decline; instructor access restrictions; and expired session recovery without exposing a previous guest's data.
+- [x] Run `npm --prefix services/frontend run test:e2e`; establish failing pages/flows against the Task 4 test services.
+- [x] Implement a coherent responsive storefront with keyboard-accessible controls, labelled forms, empty/loading/error states, bounded uploads disabled, and product placeholder assets stored in the repository. Keep simulated payment prominent. Generate API types; avoid duplicating Python schemas manually.
+- [x] Run browser tests and a production frontend build. Inspect desktop and narrow-screen rendering; confirm operational states and version are legible. Commit the frontend slice.
 
 ## Task 6: Versioned images and software-team handoff
 

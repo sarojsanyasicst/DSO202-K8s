@@ -85,3 +85,13 @@ Append outcomes in chronological order. Use [HANDOFF.md](HANDOFF.md) for the cur
 - The instructor chose a local merge: merge commit `a278ceb` (parents `a459ed4` and `da1affe`, noreply author and committer) was created on top of `origin/main` and pushed to `main` together with this record. The merged tree is identical to the tested branch head `da1affe`.
 - Full suite on the merged tree at about 23:10 (+0600), run under `caffeinate -i`: `61 passed` (unit) and `186 passed in 76.21s` (integration); test containers removed afterwards. The repository has no CI checks, so local runs remain the evidence.
 - Next: P05 when requested.
+
+## 2026-10-24 to 2026-10-26 — P05 storefront and instructor view
+
+- The instructor requested P05 and skipped the design questions, asking for sensible defaults and a list of the significant choices. Work ran inline (superpowers executing-plans) in worktree branch `claude/p05-storefront-instructor-view-461e0f`, test-first, with one fresh whole-branch review.
+- Settled the remaining contracts (D032–D036): instructor session resume and logout, an order overview with counts across all guests, `CLOUDCART_RELEASE_VERSION` with `GET /api/v1/version`, the storefront stack (Vite, React 19, React Router 8, openapi-fetch with types generated from the committed OpenAPI document, bundled Archivo font and product SVGs), guest-session and idempotency behaviour, and the browser-test harness.
+- Delivered backend routes and tests (`d3a1796`, `649641c`), Playwright tests with `services/backend/tests/e2e_stack.py` (`e32761a`), and the storefront and instructor view (`45a51ad`). Closed the carried-forward P02 gap: `GET /api/v1/session` now refuses cross-site requests.
+- Found and fixed during the work: narrow-screen overflow on order and receipt pages; the simulated-payment stripe drawn on every edge; cramped instructor tables on phones.
+- The review found no Critical issues; its three Important items (checkout key lost after a gateway 5xx, false "session ended" after a refusal, pending count that could make "Queued" negative) were fixed with failing-first tests in `a0ad936`. Six minors deferred (see [handoff](HANDOFF.md)).
+- Verified on the `a0ad936` tree: 74 unit, 220 integration, and 21 browser tests passing, production build, nine mutation checks, desktop and 360 px screenshots. See [verification](VERIFICATION.md). The Mac slept during two long runs and two review attempts; long runs now use `caffeinate -i` and the session's keep-awake.
+- Next: P06 when requested. The branch is local only: not pushed and not merged into `main`.
