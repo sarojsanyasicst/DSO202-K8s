@@ -213,6 +213,7 @@ dependencies = [
 dev = [
     { name = "httpx2" },
     { name = "pytest" },
+    { name = "uvicorn" },
 ]
 
 [package.metadata]
@@ -231,6 +232,7 @@ requires-dist = [
 dev = [
     { name = "httpx2", specifier = ">=2.16.0" },
     { name = "pytest", specifier = ">=9.1.1" },
+    { name = "uvicorn", specifier = ">=0.54.0" },
 ]
 
 [[package]]
@@ -660,6 +662,19 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/d8/89/2bd035df331499589fc92e59375c17c6cea6a500453b2c5f6a6ec9572825/tzlocal-5.4.5.tar.gz", hash = "sha256:ba976898bad27945178c9ca25c222c19e322b30c10342b9f40b46714f70d2d5f", size = 31483, upload-time = "2026-10-22T09:09:26.38Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/7b/c1/9be4e1a8a30db8729a86628073910e56f85aaf8a659e053f376a2e6ea5a8/tzlocal-5.4.5-py3-none-any.whl", hash = "sha256:ecab534f6d65d9deb4c4ea52c121ab6dd5958e9b878e71dcb102578269752454", size = 18215, upload-time = "2026-10-22T09:09:24.447Z" },
+]
+
+[[package]]
+name = "uvicorn"
+version = "0.54.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "click" },
+    { name = "h11" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/da/34/30e9280707135d2cfc589dfff3cb796bd07a3aeb1a3e415ba09dd89d7bb4/uvicorn-0.54.0.tar.gz", hash = "sha256:a2e33cbfaa0306f8e6b0c13e0cb89d7d7a2da3e62b90c66e18c33d9807b28620", size = 112283, upload-time = "2026-09-25T06:52:37.601Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/38/0c/b54a4fdd7f90a3af8b02ebc9ce6712c2c208b7926a2f7bad95c33ebbe943/uvicorn-0.54.0-py3-none-any.whl", hash = "sha256:505bdb0f318731d45f1f712071fc781a8981f6847a31c902c9f5e652d4f67faf", size = 87427, upload-time = "2026-09-25T06:52:35.829Z" },
 ]
 
 [[package]]

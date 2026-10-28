@@ -31,6 +31,9 @@ class Settings(BaseSettings):
     db_pool_timeout_seconds: int = Field(default=5, ge=1, le=60)
     db_statement_timeout_ms: int = Field(default=5000, ge=100, le=600_000)
 
+    # Release identifier reported by GET /api/v1/version and shown in the storefront, e.g. v1.
+    release_version: str = Field(default="dev", pattern=r"^[A-Za-z0-9][A-Za-z0-9.+_-]{0,63}$")
+
     # Session cookies carry the Secure attribute unless a plain-HTTP setup explicitly turns it off.
     cookie_secure: bool = True
 

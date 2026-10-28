@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 240" width="320" height="240" role="img" aria-labelledby="t"><title id="t">Pod Hoodie</title>
+<rect width="320" height="240" fill="#e3eaef"/>
+<path d="M124 44c10-12 62-12 72 0l44 22 34 70-30 14-20-38v108H96V112l-20 38-30-14 34-70z" fill="#13222c"/>
+<path d="M124 44c4 24 18 36 36 36s32-12 36-36" fill="#3c5566"/>
+<path d="M150 80v34M170 80v34" stroke="#f0b429" stroke-width="4" stroke-linecap="round"/>
+<rect x="120" y="164" width="80" height="30" rx="4" fill="#3c5566"/>
+<g transform="translate(160 136)"><rect x="-22" y="-14" width="44" height="28" rx="4" fill="#1f4f9c"/><rect x="-14" y="-7" width="12" height="14" fill="#fff"/><rect x="2" y="-7" width="12" height="14" fill="#f0b429"/></g>
+</svg>

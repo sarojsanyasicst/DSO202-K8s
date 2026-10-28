@@ -371,11 +371,15 @@ def test_openapi_documents_closed_bounded_request_schemas(open_client: Callable[
         ("/api/v1/cart/items/{product_id}", "put"),
         ("/api/v1/cart/items/{product_id}", "delete"),
         ("/api/v1/admin/login", "post"),
+        ("/api/v1/admin/session", "get"),
+        ("/api/v1/admin/logout", "post"),
+        ("/api/v1/admin/orders", "get"),
         ("/api/v1/admin/products/{product_id}/stock", "put"),
         ("/api/v1/orders", "get"),
         ("/api/v1/orders", "post"),
         ("/api/v1/orders/{order_id}", "get"),
         ("/api/v1/orders/{order_id}/receipt", "get"),
+        ("/api/v1/version", "get"),
     }
 
     def request_schema(path: str, method: str) -> dict:

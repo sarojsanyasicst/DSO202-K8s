@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 240" width="320" height="240" role="img" aria-labelledby="t"><title id="t">GitOps Poster</title>
+<rect width="320" height="240" fill="#e3eaef"/>
+<rect x="88" y="24" width="144" height="192" fill="#fff" stroke="#c5d0d7" stroke-width="3"/>
+<rect x="100" y="36" width="120" height="168" fill="#13222c"/>
+<g fill="none" stroke-width="7" stroke-linecap="round"><path d="M160 76a44 44 0 1 1-40 26" stroke="#f0b429"/><path d="M112 92l8 12 13-6" stroke="#f0b429" stroke-linejoin="round"/></g>
+<circle cx="160" cy="120" r="12" fill="#1f4f9c"/>
+<g fill="#fff"><rect x="118" y="178" width="84" height="6" rx="3"/><rect x="132" y="190" width="56" height="5" rx="2.5" fill="#4e5d68"/></g>
+</svg>

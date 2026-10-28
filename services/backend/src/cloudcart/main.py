@@ -16,7 +16,9 @@ from cloudcart.config import Settings
 from cloudcart.db import Database
 from cloudcart.identity.routes import router as identity_router
 from cloudcart.jobs.publisher import OutboxPublisher
+from cloudcart.orders.routes import admin_router as admin_orders_router
 from cloudcart.orders.routes import router as orders_router
+from cloudcart.version import router as version_router
 
 API_PREFIX = "/api/v1"
 MAX_REQUEST_BODY_BYTES = 16 * 1024
@@ -49,7 +51,7 @@ def create_app(settings: Settings) -> FastAPI:
     app.state.settings = settings
     app.add_middleware(RequestBodyLimit, max_bytes=MAX_REQUEST_BODY_BYTES)
     app.add_exception_handler(RequestValidationError, _validation_error)
-    for router in (catalog_router, identity_router, cart_router, orders_router):
+    for router in (catalog_router, identity_router, cart_router, orders_router, admin_orders_router, version_router):
         app.include_router(router, prefix=API_PREFIX)
     return app
 

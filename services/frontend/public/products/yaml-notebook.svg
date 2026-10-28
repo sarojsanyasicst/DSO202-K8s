@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 240" width="320" height="240" role="img" aria-labelledby="t"><title id="t">YAML Notebook</title>
+<rect width="320" height="240" fill="#e3eaef"/>
+<rect x="104" y="36" width="128" height="172" rx="6" fill="#13222c"/>
+<rect x="116" y="36" width="116" height="172" rx="4" fill="#3c5566"/>
+<g fill="#13222c"><circle cx="104" cy="60" r="5"/><circle cx="104" cy="90" r="5"/><circle cx="104" cy="120" r="5"/><circle cx="104" cy="150" r="5"/><circle cx="104" cy="180" r="5"/></g>
+<rect x="134" y="66" width="80" height="80" rx="4" fill="#fff"/>
+<g fill="#1f4f9c"><rect x="142" y="78" width="34" height="7" rx="2"/><rect x="154" y="92" width="44" height="7" rx="2"/><rect x="154" y="106" width="30" height="7" rx="2"/><rect x="166" y="120" width="36" height="7" rx="2"/></g>
+<rect x="142" y="132" width="12" height="7" rx="2" fill="#f0b429"/>
+<path d="M226 52v156" stroke="#a8261e" stroke-width="6"/>
+</svg>

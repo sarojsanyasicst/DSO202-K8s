@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 240" width="320" height="240" role="img" aria-labelledby="t"><title id="t">Node Sticker Pack</title>
+<rect width="320" height="240" fill="#e3eaef"/>
+<g transform="rotate(-8 120 120)"><rect x="66" y="58" width="112" height="112" rx="14" fill="#fff" stroke="#c5d0d7" stroke-width="3"/><path d="M122 84l30 17v34l-30 17-30-17v-34z" fill="#1f4f9c"/><path d="M122 104l12 7v14l-12 7-12-7v-14z" fill="#fff"/></g>
+<g transform="rotate(10 210 128)"><rect x="160" y="74" width="104" height="104" rx="52" fill="#f0b429"/><rect x="186" y="104" width="52" height="44" rx="6" fill="#13222c"/><rect x="194" y="112" width="14" height="10" fill="#f0b429"/><rect x="216" y="112" width="14" height="10" fill="#f0b429"/><rect x="194" y="128" width="36" height="6" fill="#f0b429"/></g>
+<g transform="rotate(-4 170 200)"><rect x="118" y="176" width="104" height="38" rx="19" fill="#13222c"/><circle cx="140" cy="195" r="7" fill="#1e6b45"/><rect x="154" y="190" width="54" height="10" rx="5" fill="#fff"/></g>
+</svg>

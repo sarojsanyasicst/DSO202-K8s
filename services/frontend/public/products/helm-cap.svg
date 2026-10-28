@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 240" width="320" height="240" role="img" aria-labelledby="t"><title id="t">Helm Cap</title>
+<rect width="320" height="240" fill="#e3eaef"/>
+<ellipse cx="160" cy="186" rx="96" ry="10" fill="#c5d0d7"/>
+<path d="M82 156c0-56 34-92 78-92s78 36 78 92z" fill="#1f4f9c"/>
+<path d="M160 64v92M118 76c-10 22-14 50-14 80M202 76c10 22 14 50 14 80" stroke="#173d79" stroke-width="4"/>
+<circle cx="160" cy="64" r="7" fill="#13222c"/>
+<path d="M200 152c40 0 70 6 80 20-30 6-70 6-118-4z" fill="#13222c"/>
+<g transform="translate(140 118)" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round"><circle r="16"/><circle r="4" fill="#fff"/><path d="M0-16v-8M0 16v8M-16 0h-8M16 0h8M-11-11l-6-6M11 11l6 6M11-11l6-6M-11 11l-6 6"/></g>
+</svg>

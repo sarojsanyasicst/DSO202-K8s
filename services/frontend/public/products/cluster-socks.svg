@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 240" width="320" height="240" role="img" aria-labelledby="t"><title id="t">Cluster Socks</title>
+<rect width="320" height="240" fill="#e3eaef"/>
+<g><path d="M92 40h52v110c0 24-14 42-40 50l-36 10c-16 4-26-18-12-28l36-28z" fill="#1f4f9c"/><rect x="92" y="40" width="52" height="16" fill="#13222c"/><path d="M92 74h52M92 92h52" stroke="#f0b429" stroke-width="6"/></g>
+<g transform="translate(96 10)"><path d="M92 40h52v110c0 24-14 42-40 50l-36 10c-16 4-26-18-12-28l36-28z" fill="#f0b429"/><rect x="92" y="40" width="52" height="16" fill="#13222c"/><path d="M92 74h52M92 92h52" stroke="#1f4f9c" stroke-width="6"/></g>
+</svg>

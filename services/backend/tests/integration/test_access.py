@@ -68,6 +68,7 @@ GUEST_CHANGES = [
 ]
 INSTRUCTOR_CHANGES = [
     Change("update-stock", "instructor", "PUT", "/api/v1/admin/products/{product_id}/stock", {"stock": 42}),
+    Change("log-out", "instructor", "POST", "/api/v1/admin/logout", None, success=204),
 ]
 ALL_CHANGES = GUEST_CHANGES + INSTRUCTOR_CHANGES
 
@@ -145,13 +146,14 @@ def actors(guest: Browser, instructor: Browser) -> dict[str, Browser]:
 
 
 def observed_state(database: Database, product_id: UUID) -> tuple:
-    """Everything a forged change could alter: cart versions and lines, product stock, orders, and outbox events."""
+    """Everything a forged change could alter: carts, product stock, orders, outbox events, and instructor sessions."""
     return (
         run_sql(database, "SELECT id, version FROM carts ORDER BY id"),
         run_sql(database, "SELECT cart_id, product_id, quantity FROM cart_items ORDER BY cart_id, product_id"),
         run_sql(database, "SELECT stock FROM products WHERE id = :id", id=product_id),
         run_sql(database, "SELECT id, guest_id, status FROM orders ORDER BY id"),
         run_sql(database, "SELECT id, order_id FROM outbox_events ORDER BY id"),
+        run_sql(database, "SELECT id, expires_at FROM instructor_sessions ORDER BY id"),
     )
 
 
@@ -186,6 +188,31 @@ def test_guest_session_cookie_is_http_only_secure_and_strict(open_client: OpenCl
     assert "set-cookie" not in resumed.headers
     assert resumed.json() == body
     assert run_sql(database, "SELECT count(*) FROM guests") == [(1,)]
+
+
+@pytest.mark.parametrize("forged", CROSS_SITE_HEADERS, ids=CROSS_SITE_IDS)
+def test_cross_site_session_bootstrap_is_refused(
+    open_client: OpenClient, database: Database, product_id: UUID, forged: dict[str, str]
+) -> None:
+    """A cross-site navigation to GET /session must not replace a guest's cookie and orphan their cart."""
+    guest = start_guest(open_client())
+    assert guest.send("PUT", item_url(product_id), {"quantity": 1}, guest.csrf_token).status_code == 200
+    guest.client.cookies.clear()  # SameSite=Strict: a cross-site request arrives without the cookie
+
+    response = guest.client.get("/api/v1/session", headers=forged)
+
+    assert response.status_code == 403
+    assert "set-cookie" not in response.headers
+    assert "csrf_token" not in response.text
+    assert run_sql(database, "SELECT count(*) FROM guests") == [(1,)]
+
+
+@pytest.mark.parametrize("fetch_site", ["same-origin", "same-site", "none"])
+def test_same_site_session_bootstrap_succeeds(open_client: OpenClient, fetch_site: str) -> None:
+    response = open_client().get("/api/v1/session", headers={"Sec-Fetch-Site": fetch_site})
+
+    assert response.status_code == 200
+    assert cookie_attributes(response, GUEST_COOKIE)[""]
 
 
 def test_cookies_omit_secure_only_when_https_is_disabled(
@@ -551,6 +578,7 @@ def test_responses_never_contain_session_tokens_or_password_hashes(
     responses += [
         instructor.send("PUT", stock_url(product_id), {"stock": 5}, instructor.csrf_token),
         instructor.send("PUT", stock_url(product_id), {"stock": -5}, instructor.csrf_token),
+        instructor.send("GET", "/api/v1/admin/session"),
     ]
     order = check_out(guest, product_id, "access-test-secrets-key")
     responses += [
@@ -559,6 +587,7 @@ def test_responses_never_contain_session_tokens_or_password_hashes(
         guest.send("GET", "/api/v1/orders"),
         guest.send("GET", f"/api/v1/orders/{order.json()['id']}"),
         guest.send("GET", f"/api/v1/orders/{order.json()['id']}/receipt"),
+        instructor.send("GET", "/api/v1/admin/orders"),
     ]
 
     guest_token = guest_client.cookies[GUEST_COOKIE]
