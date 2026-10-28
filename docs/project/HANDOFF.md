@@ -1,6 +1,6 @@
 # Current handoff
 
-Updated: 2026-10-26 (Asia/Thimphu).
+Updated: 2026-10-28 (Asia/Thimphu).
 
 ## Read first
 
@@ -15,7 +15,7 @@ Updated: 2026-10-26 (Asia/Thimphu).
 
 P01–P05 are done and verified ([P01 evidence](VERIFICATION.md#2026-10-24--p01-runnable-database-foundation), [P02 evidence](VERIFICATION.md#2026-10-24--p02-catalog-persistent-carts-and-access-boundaries), [P03 evidence](VERIFICATION.md#2026-10-24--p03-atomic-checkout-and-durable-order-contract), [P04 evidence](VERIFICATION.md#2026-10-24--p04-reliable-publisher-and-fulfillment-worker), [P05 evidence](VERIFICATION.md#2026-10-26--p05-storefront-and-instructor-view)). P06–P12 are not started; begin each only when the instructor requests it.
 
-Git: `main` holds P01–P04. P05 (`d3a1796` tests, `649641c` backend routes, `e32761a` browser tests and harness, `45a51ad` storefront, `a0ad936` review fixes, plus the records commit) is on the local branch `claude/p05-storefront-instructor-view-461e0f`: not pushed, no PR, not merged. P04 (`a5668ca` dependency, `280476b` tests, `5762706` implementation, `049b220` review fix, `da1affe` records) was merged from [PR #3](https://github.com/sarojsanyasicst/DSO202-K8s/pull/3) by local merge commit `a278ceb` on 2026-10-24, which keeps the noreply identity; branch `claude/p04-start-3c8765` still exists locally and on `origin`. P03 (`50aca8d` tests, `e910f54` implementation, `bf08d29` review fix, `a03a3ae` and `de1391e` records) was merged from [PR #2](https://github.com/sarojsanyasicst/DSO202-K8s/pull/2) by local merge commit `fb50bc9` on 2026-10-24, which keeps the noreply identity; branch `claude/p03-start-ce835d` still exists locally and on `origin`. P02 (`c01e916`, `6f9f7c0`, `ae2ec1e`) was merged through [PR #1](https://github.com/sarojsanyasicst/DSO202-K8s/pull/1) as merge commit `97aba5a` on 2026-10-24; branch `claude/p02-catalog-carts-access-875a84` still exists locally and on `origin`. Merges made on github.com use the GitHub account's email settings, not the local noreply configuration: `97aba5a` carries the account's primary email, which the instructor chose to keep. Enable GitHub's "Keep my email addresses private" setting, or merge locally, to keep later merge commits on the noreply identity. Remote `origin` is the public GitHub repository https://github.com/sarojsanyasicst/DSO202-K8s, so never commit credentials, personal data, or machine secrets. Commits use the instructor's GitHub noreply identity.
+Git: `main` holds P01–P05. P05 (`d3a1796` tests, `649641c` backend routes, `e32761a` browser tests and harness, `45a51ad` storefront, `a0ad936` review fixes, `ec886e0` records) was merged from [PR #4](https://github.com/sarojsanyasicst/DSO202-K8s/pull/4) by local merge commit `3e40359` on 2026-10-28, which keeps the noreply identity; branch `claude/p05-storefront-instructor-view-461e0f` still exists locally and on `origin`. P04 (`a5668ca` dependency, `280476b` tests, `5762706` implementation, `049b220` review fix, `da1affe` records) was merged from [PR #3](https://github.com/sarojsanyasicst/DSO202-K8s/pull/3) by local merge commit `a278ceb` on 2026-10-24, which keeps the noreply identity; branch `claude/p04-start-3c8765` still exists locally and on `origin`. P03 (`50aca8d` tests, `e910f54` implementation, `bf08d29` review fix, `a03a3ae` and `de1391e` records) was merged from [PR #2](https://github.com/sarojsanyasicst/DSO202-K8s/pull/2) by local merge commit `fb50bc9` on 2026-10-24, which keeps the noreply identity; branch `claude/p03-start-ce835d` still exists locally and on `origin`. P02 (`c01e916`, `6f9f7c0`, `ae2ec1e`) was merged through [PR #1](https://github.com/sarojsanyasicst/DSO202-K8s/pull/1) as merge commit `97aba5a` on 2026-10-24; branch `claude/p02-catalog-carts-access-875a84` still exists locally and on `origin`. Merges made on github.com use the GitHub account's email settings, not the local noreply configuration: `97aba5a` carries the account's primary email, which the instructor chose to keep. Enable GitHub's "Keep my email addresses private" setting, or merge locally, to keep later merge commits on the noreply identity. Remote `origin` is the public GitHub repository https://github.com/sarojsanyasicst/DSO202-K8s, so never commit credentials, personal data, or machine secrets. Commits use the instructor's GitHub noreply identity.
 
 What exists for later tasks to build on:
 
@@ -31,7 +31,7 @@ What exists for later tasks to build on:
 
 ## Next useful action
 
-When the instructor requests it: decide whether to push the P05 branch and open a PR (or merge locally, as for P03/P04). Then begin P06 / Task 6: write the failing health, lab, and version tests, then build the non-root backend and frontend images.
+When the instructor requests it, begin P06 / Task 6: write the failing health, lab, and version tests, then build the non-root backend and frontend images.
 
 ## Carried-forward notes
 

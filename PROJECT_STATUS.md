@@ -1,15 +1,15 @@
 # CloudCart project status
 
-Last updated: 2026-10-26 (Asia/Thimphu).
+Last updated: 2026-10-28 (Asia/Thimphu).
 
 ## Current position
 
-- **Phase:** P05 storefront and instructor view done on branch `claude/p05-storefront-instructor-view-461e0f` (local only: not pushed, not merged into `main`); P06 (versioned images and software-team handoff) next, when requested.
+- **Phase:** P05 storefront and instructor view done and merged into `main`; P06 (versioned images and software-team handoff) next, when requested.
 - **Architecture:** approved by the instructor.
 - **Detailed implementation plan:** Tasks 1–5 complete; Tasks 6–12 not started.
 - **Application:** settings, database sessions, app factory, the first Alembic revision, product catalog, persistent guest carts, guest/instructor sessions with CSRF and same-origin checks, instructor stock updates, the idempotent seed command, atomic checkout with idempotent retries, guest order history/status/receipt reads, one outbox event per order, an outbox publisher in each API process (confirmed, persistent RabbitMQ publication with bounded calls and backoff), and the Celery fulfillment worker (`python -m cloudcart.jobs.worker`: duplicate-safe receipts, bounded retries, stock returned once on failure), with passing unit and PostgreSQL/RabbitMQ integration tests. P05 added the React/TypeScript storefront and instructor view (`services/frontend`), instructor session/logout/order-overview routes, `GET /api/v1/version`, and Playwright browser tests against the real API, worker, and test dependencies. No container images yet (P06).
 - **Infrastructure:** none created by this project. Disposable test PostgreSQL/RabbitMQ run only through `make test-deps-up` and are removed by `make test-deps-down`. Versions are selected in [versions.yaml](deploy/platform/versions.yaml), not yet proven on a cluster.
-- **Version control:** `main` holds P01–P04. P05 is on the local branch `claude/p05-storefront-instructor-view-461e0f` (not pushed, no PR yet). P04 was merged from [PR #3](https://github.com/sarojsanyasicst/DSO202-K8s/pull/3) by a local merge commit `a278ceb` (noreply identity) pushed to `origin/main` on 2026-10-24. P03 was merged from [PR #2](https://github.com/sarojsanyasicst/DSO202-K8s/pull/2) by a local merge commit `fb50bc9` (noreply identity) pushed to `origin/main` on 2026-10-24. P02 was merged through [PR #1](https://github.com/sarojsanyasicst/DSO202-K8s/pull/1) as merge commit `97aba5a` on 2026-10-24. Remote `origin` is the public GitHub repository [sarojsanyasicst/DSO202-K8s](https://github.com/sarojsanyasicst/DSO202-K8s); everything pushed there is public.
+- **Version control:** `main` holds P01–P05. P05 was merged from [PR #4](https://github.com/sarojsanyasicst/DSO202-K8s/pull/4) by a local merge commit `3e40359` (noreply identity) pushed to `origin/main` on 2026-10-28. P04 was merged from [PR #3](https://github.com/sarojsanyasicst/DSO202-K8s/pull/3) by a local merge commit `a278ceb` (noreply identity) pushed to `origin/main` on 2026-10-24. P03 was merged from [PR #2](https://github.com/sarojsanyasicst/DSO202-K8s/pull/2) by a local merge commit `fb50bc9` (noreply identity) pushed to `origin/main` on 2026-10-24. P02 was merged through [PR #1](https://github.com/sarojsanyasicst/DSO202-K8s/pull/1) as merge commit `97aba5a` on 2026-10-24. Remote `origin` is the public GitHub repository [sarojsanyasicst/DSO202-K8s](https://github.com/sarojsanyasicst/DSO202-K8s); everything pushed there is public.
 - **Next milestone:** P06 — versioned images and software-team handoff.
 - **Current blockers:** none for P06. Known risks for later milestones: Docker Desktop VM has ~7.75 GiB against the 12–14 GiB planning estimate (P07/P09/P11); `promtool` not installed (P11).
 

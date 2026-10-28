@@ -95,3 +95,10 @@ Append outcomes in chronological order. Use [HANDOFF.md](HANDOFF.md) for the cur
 - The review found no Critical issues; its three Important items (checkout key lost after a gateway 5xx, false "session ended" after a refusal, pending count that could make "Queued" negative) were fixed with failing-first tests in `a0ad936`. Six minors deferred (see [handoff](HANDOFF.md)).
 - Verified on the `a0ad936` tree: 74 unit, 220 integration, and 21 browser tests passing, production build, nine mutation checks, desktop and 360 px screenshots. See [verification](VERIFICATION.md). The Mac slept during two long runs and two review attempts; long runs now use `caffeinate -i` and the session's keep-awake.
 - Next: P06 when requested. The branch is local only: not pushed and not merged into `main`.
+
+## 2026-10-26 to 2026-10-28 — P05 merged into main
+
+- At the instructor's request, pushed `claude/p05-storefront-instructor-view-461e0f` and opened [PR #4](https://github.com/sarojsanyasicst/DSO202-K8s/pull/4) (ready for review). A pre-push check found the noreply identity on all six branch commits and no credentials, personal data, or local paths beyond labelled TEST-ONLY test values.
+- The instructor chose a local merge: merge commit `3e40359` (parents `b289a32` and `ec886e0`, noreply author and committer) was created on top of `origin/main` and pushed to `main` together with this record. The merged tree is identical to the tested branch head `ec886e0`.
+- Full suite on the merged tree at 19:24–19:27 (+0600): `74 passed` (unit), `220 passed in 78.48s` (integration), `21 passed (1.5m)` (browser), production build OK; test containers removed afterwards. The repository has no CI checks, so local runs remain the evidence.
+- Next: P06 when requested.
